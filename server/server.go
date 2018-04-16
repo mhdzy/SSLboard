@@ -1,3 +1,11 @@
+//
+//  client.go
+//  CS 419
+//
+//  Created by Matthew Handzy on 4/16/18.
+//  Copyright © 2018 Matthew Handzy. All rights reserved.
+//
+
 package main
 
 import (
