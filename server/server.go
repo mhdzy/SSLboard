@@ -1,16 +1,14 @@
 //
-//  client.go
+//  server.go
 //  CS 419
-//
-//  Created by Matthew Handzy on 4/16/18.
-//  Copyright © 2018 Matthew Handzy. All rights reserved.
 //
 
 package main
 
 import (
-	"fmt"
+//	"fmt"
 	"net"
+	"log"
 )
 
 const PORT string = ":8080" // PORT
@@ -22,7 +20,7 @@ var STATUS bool = true      // status of server
  */
 func main() {
 
-	fmt.Println("Server booting...") // message to ensure the program started
+	log.Println("Server booting...") // message to ensure the program started
 
 	// listens for connections on port
 	ln, err := net.Listen("tcp", PORT)
@@ -53,12 +51,15 @@ func main() {
 func accept(conn net.Conn) {
 
 	// print locally that a client is connected
-	fmt.Println("Accepted a client connection.")
+	log.Println("Accepted a client connection.")
 
 	// transmit an acceptance message to the client
 	//conn.Write([]byte("Accepted.\n"))
 
-	// then go do some work
+	// do some work
+
+	// close connection
+	conn.Close()
 }
 
 // handles the GET command
