@@ -16,9 +16,7 @@ const ADDR string = "127.0.0.1:8080" // ADDRESS:PORT
 var STATUS bool = true
 
 
-func connectToBoard(addr string) {
-
-	log.Println("Client connecting to server...")
+func connectToServer(addr string) {
 
 	// initiate server connection
 	conn, err := net.Dial("tcp", addr)
@@ -43,8 +41,8 @@ func main() {
     }
 
     addr := os.Args[1]
-    log.Println("The address is ", addr)
+    log.Println("Connecting to ", addr)
 
-    connectToBoard(addr)
+    connectToServer(addr)
 
 }

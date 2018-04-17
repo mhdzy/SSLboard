@@ -9,6 +9,7 @@ import (
 //	"fmt"
 	"net"
 	"log"
+	"crypto/tls"
 )
 
 const PORT string = ":8080" // PORT
@@ -20,12 +21,20 @@ var STATUS bool = true      // status of server
  */
 func main() {
 
-	log.Println("Server booting...") // message to ensure the program started
+	log.Println("Server running on %s", PORT)
+
+	cert, err := tls.LoadX509KeyPair("../server.crt", "../server.key")
+    if err != nil {
+        log.Println(err)
+        return
+    }
+    log.Println(cert)
 
 	// listens for connections on port
 	ln, err := net.Listen("tcp", PORT)
 	if err != nil {
-		// handle error
+		log.Println(err)
+        return
 	}
 
 	// loop while server (status) is true
@@ -34,21 +43,21 @@ func main() {
 		// accept an incoming connection
 		conn, err := ln.Accept()
 		if err != nil {
-			//handle error
+			log.Println(err)
+        	return
 		}
 
 		// pass the Connection object to our acceptor
 		// this is a thread call
-		go accept(conn)
+		go clientThread(conn)
 	}
 
 }
 
 /**
- * func accept
- * accepts a Connection object to handle the TCP messages
+ * func clientThread
  */
-func accept(conn net.Conn) {
+func clientThread(conn net.Conn) {
 
 	// print locally that a client is connected
 	log.Println("Accepted a client connection.")
