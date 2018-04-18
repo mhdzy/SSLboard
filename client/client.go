@@ -15,8 +15,8 @@ import (
 var STATUS bool = true
 
 /**
- * func connectToBoard
- * connects to the message board via net.Dial
+ * func connectToServer
+ * Connects to the message board via net.Dial
  */
 func connectToServer(addr string) *tls.Conn {
 
@@ -39,7 +39,7 @@ func connectToServer(addr string) *tls.Conn {
 
 /**
  * func interactWithBoard
- * authenticates user, takes arguments from command line
+ * Authenticates user, takes arguments from command line
  */
 func interactWithBoard(conn net.Conn) {
 
@@ -67,12 +67,15 @@ func interactWithBoard(conn net.Conn) {
 
 }
 
-// should connect to server and transfer messages
+/**
+ * func main
+ * Orchestrates the client's interaction with the server
+ */
 func main() {
 
 	// checks that a IP address was specified
 	if len(os.Args) != 2 {
-		log.Printf("Usage: %s <ip-addr>\n", os.Args[0])
+		log.Printf("Usage: %s <ip-addr>.\n", os.Args[0])
 		panic("*E* Error in command line args.")
 	}
 

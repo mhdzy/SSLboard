@@ -44,25 +44,28 @@ func listener(config *tls.Config) net.Listener {
 
 /**
  * func get
+ * Handles a GET request from the client
  */
 func get(group string) {
 }
 
 /**
  * func post
+ * Handles a POST request from the client
  */
 func post(message string, group string) {
 }
 
 /**
  * func end
+ * Handles a GET request from the client
  */
 func end() {
 }
 
 /**
  * func connectionHandler
- * handles all connection work!
+ * Handles all connection work!
  */
 func connectionHandler(conn net.Conn) {
 	defer conn.Close()
@@ -84,7 +87,7 @@ func connectionHandler(conn net.Conn) {
  */
 func main() {
 
-	log.Printf("Server running on %s.", PORT)
+	log.Printf("Server running on %s.\n", PORT)
 
 	// load certificate from files
 	cert := loadKeyPairs()
