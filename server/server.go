@@ -23,19 +23,24 @@ func main() {
 
 	log.Println("Server running on %s", PORT)
 
+	// load certificate from files
 	cert, err := tls.LoadX509KeyPair("../server.crt", "../server.key")
     if err != nil {
         log.Println(err)
         return
     }
-    log.Println(cert)
+
+    // create config struct (ref) from certificate
+    config := &tls.Config{Certificates: []tls.Certificate{cert}}
 
 	// listens for connections on port
-	ln, err := net.Listen("tcp", PORT)
+	ln, err := tls.Listen("tcp", PORT, config)
+	// ln, err := net.Listen("tcp", PORT)
 	if err != nil {
 		log.Println(err)
         return
 	}
+	defer ln.Close()
 
 	// loop while server (status) is true
 	for STATUS {
@@ -44,7 +49,7 @@ func main() {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Println(err)
-        	return
+        	continue
 		}
 
 		// pass the Connection object to our acceptor
@@ -68,7 +73,6 @@ func clientThread(conn net.Conn) {
 	// do some work
 
 	// close connection
-	conn.Close()
 }
 
 // handles the GET command

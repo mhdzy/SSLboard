@@ -8,8 +8,9 @@ package main
 import (
 	"os"
 //	"fmt"
-	"net"
+//	"net"
 	"log"
+	"crypto/tls"
 )
 
 const ADDR string = "127.0.0.1:8080" // ADDRESS:PORT
@@ -18,17 +19,23 @@ var STATUS bool = true
 
 func connectToServer(addr string) {
 
+	// begin with empty config struct (ref)
+	config := &tls.Config{}
+
 	// initiate server connection
-	conn, err := net.Dial("tcp", addr)
+	conn, err := tls.Dial("tcp", addr, config)
+	// conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		// handle error
+		log.Println(err)
+        return
 	}
+	defer conn.Close()
+	
 	log.Println("Client successfully connected to server.")
 
 	// do things
 
 	// close connection
-	conn.Close()
 	log.Println("Client closing connection.")
 }
 
