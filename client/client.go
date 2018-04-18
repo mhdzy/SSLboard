@@ -6,50 +6,53 @@
 package main
 
 import (
-	"os"
-//	"fmt"
-//	"net"
-	"log"
 	"crypto/tls"
+	"log"
+	"os"
 )
 
-const ADDR string = "127.0.0.1:8080" // ADDRESS:PORT
 var STATUS bool = true
 
+/**
+ * func connectToBoard
+ * connects to the message board via net.Dial
+ */
 
-func connectToServer(addr string) {
+func connectToServer(addr string) *tls.Conn {
 
 	// begin with empty config struct (ref)
 	config := &tls.Config{}
 
 	// initiate server connection
 	conn, err := tls.Dial("tcp", addr, config)
+
+	// gets stuck on tls.Dial
+
 	// conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		log.Println(err)
-        return
+		panic("Error in tls.Dial().")
 	}
-	defer conn.Close()
-	
-	log.Println("Client successfully connected to server.")
 
-	// do things
+	log.Println("Client successfully connected to server via TLS.")
 
-	// close connection
-	log.Println("Client closing connection.")
+	return conn
 }
 
 // should connect to server and transfer messages
 func main() {
 
+	// checks that a IP address was specified
 	if len(os.Args) != 2 {
-        log.Fatal(os.Stderr, "Usage: %s <ip-addr>\n", os.Args[0])
-        os.Exit(1)
-    }
+		log.Printf("Usage: %s <ip-addr>\n", os.Args[0])
+		panic("*E* Error in command line args.")
+	}
 
-    addr := os.Args[1]
-    log.Println("Connecting to ", addr)
+	addr := os.Args[1]
+	log.Println("Connecting to: ", addr)
 
-    connectToServer(addr)
+	conn := connectToServer(addr)
+
+	log.Print(conn)
 
 }

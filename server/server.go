@@ -6,10 +6,9 @@
 package main
 
 import (
-//	"fmt"
-	"net"
-	"log"
 	"crypto/tls"
+	"log"
+	"net"
 )
 
 const PORT string = ":8080" // PORT
@@ -21,26 +20,24 @@ var STATUS bool = true      // status of server
  */
 func main() {
 
-	log.Println("Server running on %s", PORT)
+	log.Printf("Server running on %s", PORT)
 
 	// load certificate from files
 	cert, err := tls.LoadX509KeyPair("../server.crt", "../server.key")
-    if err != nil {
-        log.Println(err)
-        return
-    }
+	if err != nil {
+		log.Println(err)
+		panic("Error in loading x509 key pairs.")
+	}
 
-    // create config struct (ref) from certificate
-    config := &tls.Config{Certificates: []tls.Certificate{cert}}
+	// create config struct (ref) from certificate
+	config := &tls.Config{Certificates: []tls.Certificate{cert}}
 
 	// listens for connections on port
 	ln, err := tls.Listen("tcp", PORT, config)
-	// ln, err := net.Listen("tcp", PORT)
 	if err != nil {
 		log.Println(err)
-        return
+		panic("Error in listening on port.")
 	}
-	defer ln.Close()
 
 	// loop while server (status) is true
 	for STATUS {
@@ -49,7 +46,7 @@ func main() {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Println(err)
-        	continue
+			continue
 		}
 
 		// pass the Connection object to our acceptor
@@ -66,6 +63,12 @@ func clientThread(conn net.Conn) {
 
 	// print locally that a client is connected
 	log.Println("Accepted a client connection.")
+
+	for {
+
+		// listen for client connections
+
+	}
 
 	// transmit an acceptance message to the client
 	//conn.Write([]byte("Accepted.\n"))
