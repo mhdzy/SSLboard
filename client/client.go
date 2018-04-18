@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"log"
 	"os"
+	"net"
 )
 
 var STATUS bool = true
@@ -38,12 +39,11 @@ func connectToServer(addr string) *tls.Conn {
 
 /**
  * func interactWithBoard
- *
+ * authenticates user, takes arguments from command line
  */
 func interactWithBoard(conn net.Conn) {
 
 	defer conn.Close()
-
 
 	// get stuff from command line (user, pass)
 
@@ -51,7 +51,19 @@ func interactWithBoard(conn net.Conn) {
 
 	// write over connection
 
-	// read 
+	// read ack
+
+	// forloop
+
+		// get commandline input
+
+		// put input into JSON
+
+		// write command
+
+		// read response
+
+		// print response ?
 	
 }
 
