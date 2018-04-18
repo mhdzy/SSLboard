@@ -17,18 +17,15 @@ var STATUS bool = true
  * func connectToBoard
  * connects to the message board via net.Dial
  */
-
 func connectToServer(addr string) *tls.Conn {
 
-	// begin with empty config struct (ref)
-	config := &tls.Config{}
+	// initialize config struct (ref)
+	config := &tls.Config{
+		InsecureSkipVerify: true,
+	}
 
 	// initiate server connection
 	conn, err := tls.Dial("tcp", addr, config)
-
-	// gets stuck on tls.Dial
-
-	// conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		log.Println(err)
 		panic("Error in tls.Dial().")
@@ -37,6 +34,25 @@ func connectToServer(addr string) *tls.Conn {
 	log.Println("Client successfully connected to server via TLS.")
 
 	return conn
+}
+
+/**
+ * func interactWithBoard
+ *
+ */
+func interactWithBoard(conn net.Conn) {
+
+	defer conn.Close()
+
+
+	// get stuff from command line (user, pass)
+
+	// bundle into JSON
+
+	// write over connection
+
+	// read 
+	
 }
 
 // should connect to server and transfer messages
@@ -52,6 +68,8 @@ func main() {
 	log.Println("Connecting to: ", addr)
 
 	conn := connectToServer(addr)
+
+	interactWithBoard(conn)
 
 	log.Print(conn)
 
