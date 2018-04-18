@@ -8,8 +8,8 @@ package main
 import (
 	"crypto/tls"
 	"log"
-	"os"
 	"net"
+	"os"
 )
 
 var STATUS bool = true
@@ -55,16 +55,16 @@ func interactWithBoard(conn net.Conn) {
 
 	// forloop
 
-		// get commandline input
+	// get commandline input
 
-		// put input into JSON
+	// put input into JSON
 
-		// write command
+	// write command
 
-		// read response
+	// read response
 
-		// print response ?
-	
+	// print response ?
+
 }
 
 // should connect to server and transfer messages

@@ -15,30 +15,85 @@ const PORT string = ":8080" // PORT
 var STATUS bool = true      // status of server
 
 /**
- * func main
- * Listens for connections, accepts, and hands off to acceptor
+ * func loadKeyPairs()
+ * Loads cert and key pairs.
  */
-func main() {
-
-	log.Printf("Server running on %s", PORT)
-
-	// load certificate from files
+func loadKeyPairs() tls.Certificate {
 	cert, err := tls.LoadX509KeyPair("../server.crt", "../server.key")
+
 	if err != nil {
 		log.Println(err)
 		panic("Error in loading x509 key pairs.")
 	}
 
-	// create config struct (ref) from certificate
-	config := &tls.Config{Certificates: []tls.Certificate{cert}}
+	return cert
+}
 
-	// listens for connections on port
+/**
+ * func listener
+ * Creates a listener over TLS and returns that secure object
+ */
+func listener(config *tls.Config) net.Listener {
 	ln, err := tls.Listen("tcp", PORT, config)
 	if err != nil {
 		log.Println(err)
 		panic("Error in listening on port.")
 	}
-	defer ln.Close()
+	return ln
+}
+
+/**
+ * func get
+ */
+func get(group string) {
+}
+
+/**
+ * func post
+ */
+func post(message string, group string) {
+}
+
+/**
+ * func end
+ */
+func end() {
+}
+
+/**
+ * func connectionHandler
+ * handles all connection work!
+ */
+func connectionHandler(conn net.Conn) {
+	defer conn.Close()
+
+	// print locally that a client is connected
+	log.Println("Accepted a client connection.")
+
+	// transmit an acceptance message to the client
+	conn.Write([]byte("Accepted.\n"))
+
+	// do some work
+	//for { /* COMMENTED OUT FOR LOOP SINCE SERVER WOULD HANG */ }
+
+}
+
+/**
+ * func main
+ * Listens for connections, accepts, and hands off to acceptor
+ */
+func main() {
+
+	log.Printf("Server running on %s.", PORT)
+
+	// load certificate from files
+	cert := loadKeyPairs()
+
+	// create config struct (ref) from certificate
+	config := &tls.Config{Certificates: []tls.Certificate{cert}}
+
+	// listen on the given port
+	ln := listener(config)
 
 	// loop while server (status) is true
 	for STATUS {
@@ -52,40 +107,7 @@ func main() {
 
 		// pass the Connection object to our acceptor
 		// this is a thread call
-		go clientThread(conn)
+		go connectionHandler(conn)
 	}
 
-}
-
-/**
- * func clientThread
- */
-func clientThread(conn net.Conn) {
-
-	defer conn.Close()
-
-	// print locally that a client is connected
-	log.Println("Accepted a client connection.")
-
-	// transmit an acceptance message to the client
-	conn.Write([]byte("Accepted\n"))
-
-	// do some work
-	for {
-
-	}
-
-	// close connection
-}
-
-// handles the GET command
-func get(group string) {
-}
-
-// handles the POST command
-func post(message string, group string) {
-}
-
-// handles the END command
-func end() {
 }
