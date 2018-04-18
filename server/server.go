@@ -38,6 +38,7 @@ func main() {
 		log.Println(err)
 		panic("Error in listening on port.")
 	}
+	defer ln.Close()
 
 	// loop while server (status) is true
 	for STATUS {
@@ -61,19 +62,18 @@ func main() {
  */
 func clientThread(conn net.Conn) {
 
+	defer conn.Close()
+
 	// print locally that a client is connected
 	log.Println("Accepted a client connection.")
 
-	for {
-
-		// listen for client connections
-
-	}
-
 	// transmit an acceptance message to the client
-	//conn.Write([]byte("Accepted.\n"))
+	conn.Write([]byte("Accepted\n"))
 
 	// do some work
+	for {
+
+	}
 
 	// close connection
 }
