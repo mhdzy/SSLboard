@@ -31,7 +31,7 @@ go get golang.org/x/crypto/ssh/terminal
 
 We successfully tested the following events:
 
-- [ x ] Server can accept multiple clients
+- [x] Server can accept multiple clients
 - [ ] Trying to fetch messages from a group that doesn’t exist
 - [ ] Trying to provide an invalid username/password combo
 - [ ] Attempting to submit blank messages or invalid group names
