@@ -7,6 +7,20 @@ We designed our project from the ground up, beginning with a simple client/serve
 
 We chose to use Go, a relatively new language that simplified a lot of C functionality, making it easier to implement a lot of the features required for this project. We used the `crypto/tls` package in Go for any SSL/TLS functions (certificates, TLS handshakes, etc.).
 
+## Installation and Packages
+
+In order to install Go, you must install the appropriate package from the following link:
+
+```sh
+https://golang.org/dl/
+```
+
+Then, you need to run this command (to install a necessary std. library): 
+
+```sh
+go get golang.org/x/crypto/ssh/terminal
+```
+
 ## Design
 
 ## Challenges
