@@ -39,7 +39,7 @@ We successfully tested the following events:
 
 ## Notes
 
-We Used following commands for key and certificate generation
+We used following commands for key and certificate generation
 
 ```sh
 openssl genrsa -out server.key 2048
