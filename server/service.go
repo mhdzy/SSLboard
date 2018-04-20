@@ -14,7 +14,10 @@ type SSLboardServer struct{}
  * Authenticates a given username/passwords
  */
 func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*pb.Credentials, error) {
-	fmt.Println("success.")
+
+	// add salt and hash
+
+	// compare with stored db credentials
 
 	return c, nil
 }

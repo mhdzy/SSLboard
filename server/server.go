@@ -59,7 +59,7 @@ func connectionHandler(conn net.Conn) {
 	conn.Write([]byte("Accepted.\n"))
 
 	// do some work
-	//for { /* COMMENTED OUT FOR LOOP SINCE SERVER WOULD HANG */ }
+	// for {  COMMENTED OUT FOR LOOP SINCE SERVER WOULD HANG  }
 
 }
 
@@ -70,6 +70,8 @@ func connectionHandler(conn net.Conn) {
 func main() {
 
 	log.Printf("Server running on %s.\n", PORT)
+
+	// load Bolt db
 
 	// load certificate from files
 	cert := loadKeyPairs()

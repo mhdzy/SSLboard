@@ -52,6 +52,12 @@ func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
  */
 func verifyLogin(sslClient pb.SSLboardClient) {
 
+	// RPC authentication method (send credentials)
+	_, err := sslClient.Authenticate(context.Background(), &pb.Credentials{})
+	if err != nil {
+		log.Println(err)
+		panic("Could not authenticate")
+	}
 }
 
 /**
@@ -60,25 +66,13 @@ func verifyLogin(sslClient pb.SSLboardClient) {
  */
 func interactWithBoard(sslClient pb.SSLboardClient) {
 
-	// get stuff from command line (user, pass)
-
-	// bundle into JSON
-
-	// write over connection
-
-	// read ack
-
 	// forloop
 
-	// get commandline input
+	// take input from command line
 
-	// put input into JSON
+	// set pb struct
 
-	// write command
-
-	// read response
-
-	// print response ?
+	// do RPC call
 
 }
 
@@ -106,9 +100,6 @@ func main() {
 
 	// SECOND: allow interaction with the message board
 	interactWithBoard(sslClient)
-
-	// any time we do this then we check for errors
-	_, err := sslClient.Authenticate(context.Background(), &pb.Credentials{})
 
 	if err != nil {
 		fmt.Println("Error in rpc.")
