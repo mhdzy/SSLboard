@@ -21,6 +21,21 @@ Then, you need to run this command (to install a necessary std. library):
 go get golang.org/x/crypto/ssh/terminal
 ```
 
+grpc:
+```sh
+go get -u google.golang.org/grpc
+```
+
+protoc plugin:
+```sh
+go get -u github.com/golang/protobuf/protoc-gen-go
+```
+
+protoc:
+```sh
+brew install protoc
+```
+
 ## Design
 
 ## Challenges
