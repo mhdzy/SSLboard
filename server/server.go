@@ -9,6 +9,9 @@ import (
 	"crypto/tls"
 	"log"
 	"net"
+
+	"github.com/SleightOfHandzy/SSLboard/pb"
+	"google.golang.org/grpc"
 )
 
 const PORT string = ":8080" // PORT
@@ -40,27 +43,6 @@ func listener(config *tls.Config) net.Listener {
 		panic("Error in listening on port.")
 	}
 	return ln
-}
-
-/**
- * func get
- * Handles a GET request from the client
- */
-func get(group string) {
-}
-
-/**
- * func post
- * Handles a POST request from the client
- */
-func post(message string, group string) {
-}
-
-/**
- * func end
- * Handles a GET request from the client
- */
-func end() {
 }
 
 /**
@@ -98,19 +80,10 @@ func main() {
 	// listen on the given port
 	ln := listener(config)
 
-	// loop while server (status) is true
-	for STATUS {
+	// maybe
+	srv := grpc.NewServer()
+	pb.RegisterSSLboardServer(srv, &SSLboardServer{})
 
-		// accept an incoming connection
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		// pass the Connection object to our acceptor
-		// this is a thread call
-		go connectionHandler(conn)
-	}
+	srv.Serve(ln)
 
 }

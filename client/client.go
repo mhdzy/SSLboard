@@ -6,10 +6,15 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
+	"fmt"
 	"log"
-	"net"
 	"os"
+
+	"github.com/SleightOfHandzy/SSLboard/pb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var STATUS bool = true
@@ -18,32 +23,42 @@ var STATUS bool = true
  * func connectToServer
  * Connects to the message board via net.Dial
  */
-func connectToServer(addr string) *tls.Conn {
+func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
 
 	// initialize config struct (ref)
 	config := &tls.Config{
 		InsecureSkipVerify: true,
 	}
 
+	creds := credentials.NewTLS(config)
+
 	// initiate server connection
-	conn, err := tls.Dial("tcp", addr, config)
+	grpcConn, err := grpc.Dial(addr, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Println(err)
-		panic("Error in tls.Dial().")
+		panic("Error in grpc.Dial().")
 	}
 
 	log.Println("Client successfully connected to server via TLS.")
 
-	return conn
+	sslClient := pb.NewSSLboardClient(grpcConn)
+
+	return sslClient, grpcConn
+}
+
+/**
+ * func verifyLogin
+ * Verifies a username/password combination in the server's database.
+ */
+func verifyLogin(sslClient pb.SSLboardClient) {
+
 }
 
 /**
  * func interactWithBoard
  * Authenticates user, takes arguments from command line
  */
-func interactWithBoard(conn net.Conn) {
-
-	defer conn.Close()
+func interactWithBoard(sslClient pb.SSLboardClient) {
 
 	// get stuff from command line (user, pass)
 
@@ -82,10 +97,23 @@ func main() {
 	addr := os.Args[1]
 	log.Println("Connecting to: ", addr)
 
-	conn := connectToServer(addr)
+	// conn is of type pb.SSLboardClient
+	sslClient, grpcConn := connectToServer(addr)
+	defer grpcConn.Close()
 
-	interactWithBoard(conn)
+	// FIRST: verify username/password combination
+	verifyLogin(sslClient)
 
-	log.Print(conn)
+	// SECOND: allow interaction with the message board
+	interactWithBoard(sslClient)
+
+	// any time we do this then we check for errors
+	_, err := sslClient.Authenticate(context.Background(), &pb.Credentials{})
+
+	if err != nil {
+		fmt.Println("Error in rpc.")
+	}
+
+	fmt.Println("Exiting client.")
 
 }
