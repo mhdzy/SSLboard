@@ -56,7 +56,7 @@ func verifyLogin(sslClient pb.SSLboardClient) {
 	_, err := sslClient.Authenticate(context.Background(), &pb.Credentials{})
 	if err != nil {
 		log.Println(err)
-		panic("Could not authenticate")
+		panic("Error in sslClient.Authenticate rpc call.")
 	}
 }
 
@@ -100,10 +100,6 @@ func main() {
 
 	// SECOND: allow interaction with the message board
 	interactWithBoard(sslClient)
-
-	if err != nil {
-		fmt.Println("Error in rpc.")
-	}
 
 	fmt.Println("Exiting client.")
 
