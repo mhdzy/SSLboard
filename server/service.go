@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	"github.com/SleightOfHandzy/SSLboard/pb"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type SSLboardServer struct{}
@@ -14,7 +17,25 @@ type SSLboardServer struct{}
  */
 func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*pb.Credentials, error) {
 
+	log.Println("Authenticating user...")
+
+	usr := c.Username
+	pwd := []byte(c.Password)
+
 	// add salt and hash
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Printf("%s\n", usr)
+	fmt.Printf("%s\n", string(pwd))
+	fmt.Printf("%s\n", string(hash))
+
+	err = bcrypt.CompareHashAndPassword(hash, pwd)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("Authenticates")
 
 	// compare with stored db credentials
 

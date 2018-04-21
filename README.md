@@ -15,7 +15,7 @@ In order to install Go, you must install the appropriate package from the follow
 https://golang.org/dl/
 ```
 
-Then, you need to run this command (to install a necessary std. library): 
+Then, you need to run this command (to install a necessary std. library):
 
 ```sh
 go get golang.org/x/crypto/ssh/terminal
@@ -29,6 +29,11 @@ go get -u google.golang.org/grpc
 protoc plugin:
 ```sh
 go get -u github.com/golang/protobuf/protoc-gen-go
+```
+
+bcrypt plugin:
+```sh
+go get -u golang.org/x/crypto/bcrypt
 ```
 
 protoc:

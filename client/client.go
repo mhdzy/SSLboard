@@ -52,8 +52,10 @@ func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
  */
 func verifyLogin(sslClient pb.SSLboardClient) {
 
+	cred := &pb.Credentials{Username: "steve", Password: "password"}
+
 	// RPC authentication method (send credentials)
-	_, err := sslClient.Authenticate(context.Background(), &pb.Credentials{})
+	_, err := sslClient.Authenticate(context.Background(), cred)
 	if err != nil {
 		log.Println(err)
 		panic("Error in sslClient.Authenticate rpc call.")

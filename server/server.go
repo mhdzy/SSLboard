@@ -46,24 +46,6 @@ func listener(config *tls.Config) net.Listener {
 }
 
 /**
- * func connectionHandler
- * Handles all connection work!
- */
-func connectionHandler(conn net.Conn) {
-	defer conn.Close()
-
-	// print locally that a client is connected
-	log.Println("Accepted a client connection.")
-
-	// transmit an acceptance message to the client
-	conn.Write([]byte("Accepted.\n"))
-
-	// do some work
-	// for {  COMMENTED OUT FOR LOOP SINCE SERVER WOULD HANG  }
-
-}
-
-/**
  * func main
  * Listens for connections, accepts, and hands off to acceptor
  */
