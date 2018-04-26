@@ -19,6 +19,7 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 
 	log.Println("Authenticating user...")
 
+	// extract username from the struct passed through TLS
 	usr := c.Username
 	pwd := []byte(c.Password)
 
@@ -27,15 +28,21 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Printf("%s\n", usr)
-	fmt.Printf("%s\n", string(pwd))
-	fmt.Printf("%s\n", string(hash))
 
+	// print out username and password and hash for debugging purposes
+	fmt.Printf("*debug* username: %s", usr)
+	fmt.Printf("*debug* password: %s\n", string(pwd))
+	fmt.Printf("*debug* hash pwd: %s\n", string(hash))
+
+	// compare stored hashed password and password from database
 	err = bcrypt.CompareHashAndPassword(hash, pwd)
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println("Authenticates")
+	log.Printf("Authenticated user: %s", usr)
+
+	// empty print for formatting purposes
+	log.Println()
 
 	// compare with stored db credentials
 

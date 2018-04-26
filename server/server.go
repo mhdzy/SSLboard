@@ -22,7 +22,7 @@ var STATUS bool = true      // status of server
  * Loads cert and key pairs.
  */
 func loadKeyPairs() tls.Certificate {
-	cert, err := tls.LoadX509KeyPair("../server.crt", "../server.key")
+	cert, err := tls.LoadX509KeyPair("./server.crt", "./server.key")
 
 	if err != nil {
 		log.Println(err)

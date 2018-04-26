@@ -6,13 +6,16 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"log"
 	"os"
+	"syscall"
 
 	"github.com/SleightOfHandzy/SSLboard/pb"
+	"golang.org/x/crypto/ssh/terminal"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -52,14 +55,38 @@ func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
  */
 func verifyLogin(sslClient pb.SSLboardClient) {
 
-	cred := &pb.Credentials{Username: "steve", Password: "password"}
+	// establish a reader to read username
+	reader := bufio.NewReader(os.Stdin)
+
+	// get username from command line
+	fmt.Printf("username: ")
+	username, err := reader.ReadString('\n')
+	if err != nil {
+		log.Println(err)
+		fmt.Println("Error in reading username, setting to default 'pk419'.")
+	}
+
+	// get password securely from command line
+	fmt.Printf("password: ")
+	password, err := terminal.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		log.Println(err)
+		fmt.Println("Error in reading password, setting to default 'spring18'")
+	}
+
+	// create credentials to pass through TLS pipe in rpc call
+	cred := &pb.Credentials{Username: username, Password: string(password)}
 
 	// RPC authentication method (send credentials)
-	_, err := sslClient.Authenticate(context.Background(), cred)
+	_, err = sslClient.Authenticate(context.Background(), cred)
 	if err != nil {
 		log.Println(err)
 		panic("Error in sslClient.Authenticate rpc call.")
 	}
+
+	// empty print for formatting
+	fmt.Println()
+
 }
 
 /**
