@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"syscall"
 
 	"github.com/SleightOfHandzy/SSLboard/pb"
@@ -53,7 +54,7 @@ func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
  * func verifyLogin
  * Verifies a username/password combination in the server's database.
  */
-func verifyLogin(sslClient pb.SSLboardClient) {
+func verifyLogin(sslClient pb.SSLboardClient) string {
 
 	// establish a reader to read username
 	reader := bufio.NewReader(os.Stdin)
@@ -84,8 +85,29 @@ func verifyLogin(sslClient pb.SSLboardClient) {
 		panic("Error in sslClient.Authenticate rpc call.")
 	}
 
+	// TODO: reset password so that it isn't in memory
+
 	// empty print for formatting
 	fmt.Println()
+
+	return username
+
+}
+
+/**
+ * func parse
+ * Parses a command into separate strings
+ */
+func parse(cmd string) (string, string, string, bool) {
+
+	words := strings.Split(cmd, " ")
+
+	command := words[0] // check to make sure this exists
+	group := words[1]   // check to make sure this exists
+	message := words[2:len(words)]
+	err := false
+
+	return command, group, strings.Join(message, " "), err
 
 }
 
@@ -93,9 +115,43 @@ func verifyLogin(sslClient pb.SSLboardClient) {
  * func interactWithBoard
  * Authenticates user, takes arguments from command line
  */
-func interactWithBoard(sslClient pb.SSLboardClient) {
+func interactWithBoard(username string, sslClient pb.SSLboardClient) {
 
-	// forloop
+	flg := true
+	reader := bufio.NewReader(os.Stdin)
+
+	for flg {
+
+		// prompt
+		fmt.Printf("> ")
+
+		// read command ("GET/POST/END GROUP MESSAGE")
+		cmd, _ := reader.ReadString('\n')
+
+		// parse cmd into three separate strings
+		command, group, message, err := parse(cmd)
+
+		if err == true {
+			fmt.Println("rpc syntax: <GET/POST/END> <groupName> <POST: messageContent>")
+			continue
+		}
+
+		// create struct to send over TLS pipe
+		packet := &pb.Message{Username: username, Group: group, Msg: message}
+		packet2 := &pb.Credentials{Username: username}
+
+		// GET rpc call
+		if command == "GET" {
+			sslClient.Get(context.Background(), packet)
+		} else if command == "POST" {
+			sslClient.Post(context.Background(), packet)
+		} else if command == "END" {
+			sslClient.End(context.Background(), packet2)
+		} else {
+			fmt.Println("You issued an incorrect command. <GET/POST/END> are acceptable.")
+		}
+
+	}
 
 	// take input from command line
 
@@ -125,10 +181,10 @@ func main() {
 	defer grpcConn.Close()
 
 	// FIRST: verify username/password combination
-	verifyLogin(sslClient)
+	username := verifyLogin(sslClient)
 
 	// SECOND: allow interaction with the message board
-	interactWithBoard(sslClient)
+	interactWithBoard(username, sslClient)
 
 	fmt.Println("Exiting client.")
 

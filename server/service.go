@@ -17,7 +17,7 @@ type SSLboardServer struct{}
  */
 func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*pb.Credentials, error) {
 
-	log.Println("Authenticating user...")
+	log.Println("RPC call to service.Authenticate")
 
 	// extract username from the struct passed through TLS
 	usr := c.Username
@@ -39,10 +39,11 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	if err != nil {
 		log.Println(err)
 	}
-	log.Printf("Authenticated user: %s", usr)
 
-	// empty print for formatting purposes
-	log.Println()
+	// \n is used to create formatting
+	log.Printf("Authenticated user: %s\n", usr)
+
+	// PLEASE SEND BACK UNIQUE TOKEN ID FOR USER
 
 	// compare with stored db credentials
 
@@ -55,6 +56,11 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
  */
 func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
+	log.Println("RPC call to service.Get")
+	log.Printf("Username: %s", m.Username) // m.Username CONTAINS A \n
+	log.Printf("Group: %s", m.Group)       // m.Group CONTAINS A \n
+	log.Printf("Message: %s\n", m.Msg)     // \n for formatting
+
 	return m, nil
 
 }
@@ -65,6 +71,11 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
  */
 func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
+	log.Println("RPC call to service.Post")
+	log.Printf("Username: %s", m.Username) // m.Username CONTAINS A \n
+	log.Printf("Group: %s", m.Group)       // m.Group CONTAINS A \n
+	log.Printf("Message: %s", m.Msg)       // m.Msg CONTAINS A \n
+
 	return m, nil
 
 }
@@ -74,6 +85,11 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
  * Handles a GET request from the client
  */
 func (s *SSLboardServer) End(_ context.Context, c *pb.Credentials) (*pb.Credentials, error) {
+
+	log.Println("RPC call to service.End")
+	log.Printf("Username: %s", c.Username) // m.Username CONTAINS A \n
+
+	// remove client token from list of active tokens
 
 	return c, nil
 
