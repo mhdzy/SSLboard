@@ -98,7 +98,7 @@ Learning gRPC was a bit of a challenge, especially figuring out how we would imp
 
 #### protobuffers
 
-Learning how to write a `.proto` file was rather easy, as we only had to define a few methods that we were to implement along with the necessary structs to send information over our connection. 
+Learning how to write a `.proto` file was rather easy, as we only had to define a few methods that we were to implement along with the necessary structs to send information over our connection. However, figuring out how to incorporate gRPC's functionality along with implementing our interfaces and structs took a bit of time. 
 
 #### dep (ensure)
 
