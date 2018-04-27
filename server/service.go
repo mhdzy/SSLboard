@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/SleightOfHandzy/SSLboard/pb"
@@ -80,12 +81,13 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	fmt.Println("\nRPC call to Authenticate()")
 
 	var hash []byte
+	var groups []string
 	var bucket_users = []byte("Users")
 	var bucket_tokens = []byte("Tokens")
-	// var bucket_groups = []byte("Groups")
+	var bucket_groups = []byte("Groups")
 	var userNotExist = errors.New("Username does not exist.")
 	var userInSession = errors.New("User is currently in a session.")
-	// var noGroups = errors.New("No available groups.")
+	var noGroups = errors.New("No available groups.")
 
 	// open database
 	db, err := bolt.Open("./board.db", 0666, nil)
@@ -208,34 +210,27 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	c.Password = string(token)
 
 	// send back list of available groups
-	var bucket_groups = []byte("Groups")
-	var groups [][]byte
-	var noGroups = errors.New("No available groups.")
-
-	// // open database
-	// db, err := bolt.Open("./board.db", 0666, nil)
-	// if err != nil {
-	// 	return groups, err
-	// }
-	// defer db.Close()
-
-	// verify that username has active token listed
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(bucket_groups)
 		if bucket == nil {
 			return noGroups
 		}
+		s := bucket.Stats()
+		groups = make([]string, s.KeyN)
+
 		c := bucket.Cursor()
 		i := 0
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			groups[i%10] = v
+			groups[i] = string(v)
 			i += 1
 		}
 		return nil
 	})
+	if err != nil {
+		log.Println(err)
+	}
 
 	fmt.Println(groups)
-
 	return c, nil
 }
 
@@ -251,6 +246,7 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 
 	token := m.Token
 	username := m.Username
+	// group := []byte(strings.ToLower(m.Group))
 
 	// check that the token given is a valid token
 	err := validateToken(token, username)
@@ -281,9 +277,11 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 	log.Printf("Group: %s\n", m.Group)
 	log.Printf("Message: %s\n", m.Msg)
 
+	var bucket_groups = []byte("Groups")
+
 	token := m.Token
 	username := m.Username
-	group := []byte(m.Group)
+	group := []byte(strings.ToLower(m.Group))
 	message := []byte(m.Msg)
 
 	// check that the token given is a valid token
@@ -303,11 +301,19 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 
 	// POST message to a given group, add timestamp, and return success message
 	err = db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(group)
+		bucket1, err := tx.CreateBucketIfNotExists(bucket_groups)
 		if err != nil {
-			panic("Error opening Tokens bucket.")
+			panic("Error opening bucket.")
 		}
-		err = bucket.Put([]byte(time.Now().String()), message)
+		err = bucket1.Put(group, group)
+		if err != nil {
+			panic("Error writing to Tokens bucket.")
+		}
+		bucket2, err := tx.CreateBucketIfNotExists(group)
+		if err != nil {
+			panic("Error opening bucket.")
+		}
+		err = bucket2.Put([]byte(time.Now().String()), message)
 		if err != nil {
 			panic("Error writing to Tokens bucket.")
 		}
