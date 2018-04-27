@@ -43,8 +43,6 @@ func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
 		panic("Error in grpc.Dial().")
 	}
 
-	log.Println("Client successfully connected to server via TLS.")
-
 	sslClient := pb.NewSSLboardClient(grpcConn)
 
 	return sslClient, grpcConn
@@ -69,6 +67,11 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 		fmt.Println("Error in reading username, setting to default 'pk419'.")
 	}
 
+	// remove newline character
+	if strings.HasSuffix(username, "\n") {
+		username = username[:len(username)-1]
+	}
+
 	for {
 
 		// get password securely from command line
@@ -87,13 +90,15 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 		if err != nil {
 			fmt.Print("\n")
 			log.Println(err)
+			continue
 		}
+		break
 	}
 
 	// TODO: reset password so that it isn't in memory
 
 	// empty print for formatting
-	fmt.Println("Authenticated")
+	fmt.Println("\nAuthenticated")
 
 	return username, c.Password
 }
@@ -104,20 +109,24 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
  */
 func parse(cmd string) (string, string, string, bool) {
 
-	// remove new-line character
+	// remove newline character
 	if strings.HasSuffix(cmd, "\n") {
 		cmd = cmd[:len(cmd)-1]
 	}
 
 	words := strings.Split(cmd, " ")
 
-	command := words[0] // check to make sure this exists
+	command := words[0]
 
 	if command == "END" {
 		return command, "", "", false
 	}
 
-	group := words[1] // check to make sure this exists
+	group := words[1]
+
+	if command == "GET" {
+		return command, group, "", false
+	}
 	message := words[2:len(words)]
 	err := false
 
@@ -197,6 +206,7 @@ func main() {
 	// connect to server using grpc over TLS
 	sslClient, grpcConn := connectToServer(addr)
 	defer grpcConn.Close()
+	log.Println("Client successfully connected to server via TLS.")
 
 	// verify username/password combination
 	username, token := verifyLogin(sslClient)

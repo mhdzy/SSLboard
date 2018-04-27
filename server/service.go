@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 
@@ -10,6 +11,33 @@ import (
 	"github.com/boltdb/bolt"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func validateToken(token string, username string) error {
+
+	var bucket_tokens = []byte("Tokens")
+	var userNotAuth = errors.New("User is not authenticated")
+	var incorrectToken = errors.New("Incorrect session token")
+
+	// open database
+	db, err := bolt.Open("./board.db", 0666, nil)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// verify that username has active token
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bucket_tokens)
+		if bucket == nil {
+			return userNotAuth
+		}
+		if token != string(bucket.Get([]byte(username))) {
+			return incorrectToken
+		}
+		return nil
+	})
+	return err
+}
 
 type SSLboardServer struct{}
 
@@ -24,8 +52,10 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	var hash []byte
 	var bucket_users = []byte("Users")
 	var bucket_tokens = []byte("Tokens")
+	var bucket_groups = []byte("Groups")
 	var userNotExist = errors.New("Username does not exist")
 	var userInSession = errors.New("User is currently in a session")
+	var noGroups = errors.New("No available groups")
 
 	// open database
 	db, err := bolt.Open("./board.db", 0666, nil)
@@ -141,6 +171,26 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 
 	// return token
 	c.Password = string(token)
+
+	// send back list of available groups
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bucket_groups)
+		if bucket == nil {
+			return noGroups
+		}
+
+		c := bucket.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			fmt.Printf("key=%s, value=%s\n", k, v)
+		}
+		return nil
+	})
+
+	if err != nil {
+
+	}
+
 	return c, nil
 }
 
@@ -150,13 +200,38 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
  */
 func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
-	log.Println("RPC call to service.Get")
-	log.Printf("Username: %s", m.Username) // m.Username CONTAINS A \n
-	log.Printf("Group: %s", m.Group)       // m.Group CONTAINS A \n
-	log.Printf("Message: %s\n", m.Msg)     // \n for formatting
+	log.Println("RPC call to Get()")
+
+	var userNotAuth = errors.New("User is not authenticated")
+	var incorrectToken = errors.New("Incorrect session token")
+
+	token := m.Token
+	username := m.Username
+
+	err := validateToken(token, username)
+	if err != nil {
+		switch err {
+		case userNotAuth:
+			log.Println("User is currently in a session")
+		case incorrectToken:
+			log.Println("Incorrect session token")
+		}
+		return m, err
+	}
+
+	// open database
+	db, err := bolt.Open("./board.db", 0666, nil)
+	if err != nil {
+		log.Println("Error opening database")
+		return m, err
+	}
+	defer db.Close()
+
+	fmt.Printf("Username: %s\n", m.Username)
+	fmt.Printf("Group: %s\n", m.Group)
+	fmt.Printf("Message: %s\n", m.Msg)
 
 	return m, nil
-
 }
 
 /**
@@ -165,13 +240,38 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
  */
 func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
-	log.Println("RPC call to service.Post")
-	log.Printf("Username: %s", m.Username) // m.Username CONTAINS A \n
-	log.Printf("Group: %s", m.Group)       // m.Group CONTAINS A \n
-	log.Printf("Message: %s", m.Msg)       // m.Msg CONTAINS A \n
+	log.Println("RPC call to Post()")
+
+	var userNotAuth = errors.New("User is not authenticated")
+	var incorrectToken = errors.New("Incorrect session token")
+
+	token := m.Token
+	username := m.Username
+
+	err := validateToken(token, username)
+	if err != nil {
+		switch err {
+		case userNotAuth:
+			log.Println("User is currently in a session")
+		case incorrectToken:
+			log.Println("Incorrect session token")
+		}
+		return m, err
+	}
+
+	// open database
+	db, err := bolt.Open("./board.db", 0666, nil)
+	if err != nil {
+		log.Println("Error opening database")
+		return m, err
+	}
+	defer db.Close()
+
+	fmt.Printf("Username: %s\n", m.Username)
+	fmt.Printf("Group: %s\n", m.Group)
+	fmt.Printf("Message: %s\n", m.Msg)
 
 	return m, nil
-
 }
 
 /**
@@ -186,28 +286,10 @@ func (s *SSLboardServer) End(_ context.Context, m *pb.Message) (*pb.Message, err
 	var userNotAuth = errors.New("User is not authenticated")
 	var incorrectToken = errors.New("Incorrect session token")
 
-	// open database
-	db, err := bolt.Open("./board.db", 0666, nil)
-	if err != nil {
-		return m, err
-	}
-	defer db.Close()
-
 	token := m.Token
 	username := m.Username
 
-	// verify that username has active token
-	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(bucket_tokens)
-		if bucket == nil {
-			return userNotAuth
-		}
-		if token != string(bucket.Get([]byte(username))) {
-			return incorrectToken
-		}
-		return nil
-	})
-
+	err := validateToken(token, username)
 	if err != nil {
 		switch err {
 		case userNotAuth:
@@ -218,7 +300,12 @@ func (s *SSLboardServer) End(_ context.Context, m *pb.Message) (*pb.Message, err
 		return m, err
 	}
 
-	log.Println("User is logging out")
+	// open database
+	db, err := bolt.Open("./board.db", 0666, nil)
+	if err != nil {
+		return m, err
+	}
+	defer db.Close()
 
 	// remove client token from list of active tokens
 	err = db.Update(func(tx *bolt.Tx) error {
