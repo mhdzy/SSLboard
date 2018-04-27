@@ -90,6 +90,9 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 		if err != nil {
 			fmt.Print("\n")
 			log.Println(err)
+
+			// IF ERROR == User is currently in a session, FIX THIS
+
 			continue
 		}
 		break
@@ -98,7 +101,7 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 	// TODO: reset password so that it isn't in memory
 
 	// empty print for formatting
-	fmt.Println("\nAuthenticated")
+	fmt.Printf("\nAuthenticated user: %s.\n\n", username)
 
 	return username, c.Password
 }
@@ -114,23 +117,44 @@ func parse(cmd string) (string, string, string, bool) {
 		cmd = cmd[:len(cmd)-1]
 	}
 
+	// split input into "cmd grp message"
 	words := strings.Split(cmd, " ")
 
+	// extract command from split result
 	command := words[0]
 
+	// if END issued, words[n > 1] will segfault
 	if command == "END" {
 		return command, "", "", false
 	}
 
-	group := words[1]
+	// extract groupname from split result
+	group := ""
+	if len(words) > 1 {
+		group = words[1]
+	} else {
+		return "invalid", "", "", true
+	}
 
+	// if GET issued, words[2] "message argument" will not exist
+	// if POST issued, words[2:len(words)] includes the message
+	// else, an invalid command was issued
 	if command == "GET" {
 		return command, group, "", false
-	}
-	message := words[2:len(words)]
-	err := false
+	} else if command == "POST" {
 
-	return command, group, strings.Join(message, " "), err
+		// if cmd doesn't contain a message, yell at the user
+		if len(words) < 3 {
+			fmt.Printf("Please include a message when POSTing to the group.\n")
+			return "invalid", "", "", true
+		}
+
+		// extract message from strings (cat the rest of the split result)
+		message := words[2:len(words)]
+		return command, group, strings.Join(message, " "), false
+	} else {
+		return "invalid", "", "", true
+	}
 
 }
 
@@ -141,6 +165,8 @@ func parse(cmd string) (string, string, string, bool) {
 func interactWithBoard(username string, token string, sslClient pb.SSLboardClient) {
 
 	reader := bufio.NewReader(os.Stdin)
+
+	// if this function ever ends, the client will issue an END request
 	defer func() {
 		_, err := sslClient.End(context.Background(),
 			&pb.Message{Token: token, Username: username, Group: "", Msg: ""})
@@ -149,6 +175,7 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 		}
 	}()
 
+	// loop through client input
 	for {
 
 		// prompt
@@ -161,14 +188,14 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 		command, group, message, err := parse(cmd)
 
 		if err == true {
-			fmt.Println("rpc syntax: <GET/POST/END> <groupName> <POST: messageContent>")
+			fmt.Printf("rpc syntax: <GET/POST/END> <groupName> <(POST call): messageContent>\n\n")
 			continue
 		}
 
 		// create struct to send over TLS pipe
 		packet := &pb.Message{Token: token, Username: username, Group: group, Msg: message}
 
-		// GET rpc call
+		// RPC calls are made here
 		if command == "GET" {
 			_, err := sslClient.Get(context.Background(), packet)
 
@@ -177,7 +204,7 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 				fmt.Println(err)
 			}
 
-			// print output
+			// print result of get
 
 		} else if command == "POST" {
 			_, err := sslClient.Post(context.Background(), packet)
@@ -187,10 +214,12 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 				fmt.Println(err)
 			}
 
+			fmt.Printf("Call to Post() succeeded.\n\n")
+
 		} else if command == "END" {
-			break
+			break // will stack defered function call and exit client
 		} else {
-			fmt.Println("You issued an incorrect command. <GET/POST/END> are acceptable.")
+			fmt.Printf("You issued an incorrect command. <GET/POST/END> are acceptable.\n\n")
 		}
 	}
 }
@@ -207,12 +236,10 @@ func main() {
 		panic("*E* Error in command line args.")
 	}
 	addr := os.Args[1]
-	log.Println("Connecting to: ", addr)
 
 	// connect to server using grpc over TLS
 	sslClient, grpcConn := connectToServer(addr)
 	defer grpcConn.Close()
-	log.Println("Client successfully connected to server via TLS.")
 
 	// verify username/password combination
 	username, token := verifyLogin(sslClient)

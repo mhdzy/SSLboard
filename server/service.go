@@ -15,8 +15,8 @@ import (
 func validateToken(token string, username string) error {
 
 	var bucket_tokens = []byte("Tokens")
-	var userNotAuth = errors.New("User is not authenticated")
-	var incorrectToken = errors.New("Incorrect session token")
+	var userNotAuth = errors.New("User is not authenticated.")
+	var incorrectToken = errors.New("Incorrect session token.")
 
 	// open database
 	db, err := bolt.Open("./board.db", 0666, nil)
@@ -25,7 +25,7 @@ func validateToken(token string, username string) error {
 	}
 	defer db.Close()
 
-	// verify that username has active token
+	// verify that username has active token listed
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(bucket_tokens)
 		if bucket == nil {
@@ -47,15 +47,15 @@ type SSLboardServer struct{}
  */
 func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*pb.Credentials, error) {
 
-	log.Println("RPC call to Authenticate()")
+	fmt.Println("\nRPC call to Authenticate()")
 
 	var hash []byte
 	var bucket_users = []byte("Users")
 	var bucket_tokens = []byte("Tokens")
 	var bucket_groups = []byte("Groups")
-	var userNotExist = errors.New("Username does not exist")
-	var userInSession = errors.New("User is currently in a session")
-	var noGroups = errors.New("No available groups")
+	var userNotExist = errors.New("Username does not exist.")
+	var userInSession = errors.New("User is currently in a session.")
+	var noGroups = errors.New("No available groups.")
 
 	// open database
 	db, err := bolt.Open("./board.db", 0666, nil)
@@ -70,6 +70,8 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 
 	// get username from database
 	err = db.Update(func(tx *bolt.Tx) error {
+
+		// create bucket on first Authenticate() call to server since boot
 		bucket, err := tx.CreateBucketIfNotExists(bucket_users)
 		if err != nil {
 			return err
@@ -78,7 +80,7 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 		// get hash and salt from user bucket
 		stored_hash := bucket.Get(username)
 		if stored_hash == nil {
-			log.Println("Username does not exist")
+			log.Println("Username does not exist.")
 			return userNotExist
 		}
 		hash = make([]byte, len(stored_hash))
@@ -89,15 +91,15 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 
 	if err != nil {
 		switch err {
-		case userNotExist:
 
+		case userNotExist:
 			// create new key pair
 			hash, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
 			if err != nil {
-				panic("Error hashing password")
+				panic("Error hashing password.")
 			}
 
-			// store username and hash
+			// store new username and hash
 			err = db.Update(func(tx *bolt.Tx) error {
 				bucket, err := tx.CreateBucketIfNotExists(bucket_users)
 				if err != nil {
@@ -110,12 +112,12 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 				return nil
 			})
 			if err != nil {
-				panic("Error storing hash")
+				panic("Error storing hash.")
 			}
-			log.Println("Added new user")
+			log.Println("Added new user.")
 
 		default:
-			panic("Error opening Users bucket")
+			panic("Error opening Users bucket.")
 		}
 
 	} else {
@@ -124,7 +126,7 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 		err = db.Update(func(tx *bolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucket_tokens)
 			if err != nil {
-				panic("Error opening Tokens bucket")
+				panic("Error opening Tokens bucket.")
 			}
 			token := bucket.Get(username)
 			if token != nil {
@@ -133,46 +135,49 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 			return nil
 		})
 		if err != nil {
-			log.Println("User is currently in a session")
+			log.Println("User is currently in a session.")
+
+			// TODO: DELETE CURRENT SESSION TOKEN, CREATE NEW SESSION TOKEN
+
 			return c, err // returning userInSession error
 		}
 
 		// compare stored hashed password and password from database
 		err = bcrypt.CompareHashAndPassword(hash, password)
 		if err != nil {
-			log.Println("Incorrect password")
+			log.Println("Incorrect password.")
 			return c, err // may want to return special error (incorrect password)
 		}
 	}
 
-	log.Println("User is authenticated")
+	log.Println("User has been authenticated.")
 
 	// generate token
 	token := make([]byte, 16)
 	n, err := rand.Read(token)
 	if n != 16 {
-		panic("Error generating token")
+		panic("Error generating token.")
 	}
 
 	// store token
 	err = db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(bucket_tokens)
 		if err != nil {
-			panic("Error opening Tokens bucket")
+			panic("Error opening Tokens bucket.")
 		}
 		err = bucket.Put(username, token)
 		if err != nil {
-			panic("Error writing to Tokens bucket")
+			panic("Error writing to Tokens bucket.")
 		}
 		return nil
 	})
 
-	log.Println("Returning session token")
+	log.Println("Returning session token to user...")
 
-	// return token
+	// store token in password field to send back to user
 	c.Password = string(token)
 
-	// send back list of available groups
+	// send back list of available groups in username field
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(bucket_groups)
 		if bucket == nil {
@@ -200,11 +205,14 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
  */
 func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
-	log.Println("RPC call to Get()")
+	fmt.Println("\nRPC call to Get()")
+	log.Printf("Username: %s\n", m.Username)
+	log.Printf("Group: %s\n", m.Group)
 
 	token := m.Token
 	username := m.Username
 
+	// check that the token given is a valid token
 	err := validateToken(token, username)
 	if err != nil {
 		log.Println(err)
@@ -214,13 +222,12 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	// open database
 	db, err := bolt.Open("./board.db", 0666, nil)
 	if err != nil {
-		log.Println("Error opening database")
+		log.Println("Error opening database.")
 		return m, err
 	}
 	defer db.Close()
 
-	fmt.Printf("Username: %s\n", m.Username)
-	fmt.Printf("Group: %s\n", m.Group)
+	// get all messages in the group's bucket
 
 	return m, nil
 }
@@ -231,11 +238,15 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
  */
 func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
-	log.Println("RPC call to Post()")
+	fmt.Println("\nRPC call to Post()")
+	log.Printf("Username: %s\n", m.Username)
+	log.Printf("Group: %s\n", m.Group)
+	log.Printf("Message: %s\n", m.Msg)
 
 	token := m.Token
 	username := m.Username
 
+	// check that the token given is a valid token
 	err := validateToken(token, username)
 	if err != nil {
 		log.Println(err)
@@ -245,14 +256,14 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 	// open database
 	db, err := bolt.Open("./board.db", 0666, nil)
 	if err != nil {
-		log.Println("Error opening database")
+		log.Println("Error opening database.")
 		return m, err
 	}
 	defer db.Close()
 
-	fmt.Printf("Username: %s\n", m.Username)
-	fmt.Printf("Group: %s\n", m.Group)
-	fmt.Printf("Message: %s\n", m.Msg)
+	// POST message to a given group, add timestamp, and return success message
+
+	log.Printf("POST to group %s succeeded.\n", m.Group)
 
 	return m, nil
 }
@@ -263,7 +274,7 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
  */
 func (s *SSLboardServer) End(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
-	log.Println("RPC call to End()")
+	fmt.Println("\nRPC call to End()")
 
 	var bucket_tokens = []byte("Tokens")
 
@@ -287,16 +298,16 @@ func (s *SSLboardServer) End(_ context.Context, m *pb.Message) (*pb.Message, err
 	err = db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(bucket_tokens)
 		if err != nil {
-			panic("Error opening Tokens bucket")
+			panic("Error opening Tokens bucket.")
 		}
 		err = bucket.Delete([]byte(username))
 		if err != nil {
-			panic("Error writing to Tokens bucket")
+			panic("Error writing to Tokens bucket.")
 		}
 		return nil
 	})
 
-	log.Println("Active session terminated")
+	log.Println("Active session terminated.")
 
 	return m, nil
 }
