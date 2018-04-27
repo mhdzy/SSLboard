@@ -19,7 +19,7 @@ In order to install Go, you must install the appropriate package from the follow
 
 Then, you need to place the source directory (.../SSLboard/) in ~/go/src/github.com/SleightOfHandzy/ to create a relative pathname of: 
 
-    ~/go/src/github.com/SleightOfHandzy/SSLboard/...
+    ~/Go/src/github.com/SleightOfHandzy/SSLboard/...
     
 Next, you will need to place your .key and .crt files (openSSL generated key and certificate files) into the `/SSLboard/server/` directory. This is where our code assumes they will be, and it will compile but NOT work if they are not placed in this package.
     
