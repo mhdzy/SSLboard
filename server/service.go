@@ -247,8 +247,10 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	log.Printf("Group: %s\n", m.Group)
 
 	var groups []string
+	var messages []string
 	var bucket_groups = []byte("Groups")
 	var noGroups = errors.New("No available groups.")
+	var noMessages = errors.New("No available messages.")
 
 	token := m.Token
 	username := m.Username
@@ -272,6 +274,8 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	// send back list of available groups
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(bucket_groups)
+		bucket2 := tx.Bucket([]byte(m.Group))
+
 		if bucket == nil {
 			return noGroups
 		}
@@ -284,14 +288,36 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 			groups[i] = string(v)
 			i += 1
 		}
+
+		if bucket2 == nil {
+			return noMessages
+		}
+		s2 := bucket2.Stats()
+		messages = make([]string, s2.KeyN+1)
+
+		d := bucket.Cursor()
+		j := 0
+		for k, v := d.First(); k != nil; k, v = d.Next() {
+			var buffer bytes.Buffer
+			buffer.WriteString(string(k))
+			buffer.WriteString("\t")
+			buffer.WriteString(string(v))
+			e := buffer.String()
+			messages[j] = e
+			j += 1
+		}
+
 		return nil
 	})
+
 	if err != nil {
 		log.Println(err)
 	}
 
 	fmt.Println(groups)
+	fmt.Println(messages)
 	m.Groups = groups
+	m.Messages = messages
 
 	return m, nil
 }
