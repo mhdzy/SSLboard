@@ -176,15 +176,64 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 
 /**
  * func end
- * Handles a GET request from the client
+ * Handles an END request from the client
  */
-func (s *SSLboardServer) End(_ context.Context, c *pb.Credentials) (*pb.Credentials, error) {
+func (s *SSLboardServer) End(_ context.Context, m *pb.Message) (*pb.Message, error) {
 
-	log.Println("RPC call to service.End")
-	log.Printf("Username: %s", c.Username) // m.Username CONTAINS A \n
+	log.Println("RPC call to End()")
+
+	var bucket_tokens = []byte("Tokens")
+	var userNotAuth = errors.New("User is not authenticated")
+	var incorrectToken = errors.New("Incorrect session token")
+
+	// open database
+	db, err := bolt.Open("./board.db", 0666, nil)
+	if err != nil {
+		return m, err
+	}
+	defer db.Close()
+
+	token := m.Token
+	username := m.Username
+
+	// verify that username has active token
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bucket_tokens)
+		if bucket == nil {
+			return userNotAuth
+		}
+		if token != string(bucket.Get([]byte(username))) {
+			return incorrectToken
+		}
+		return nil
+	})
+
+	if err != nil {
+		switch err {
+		case userNotAuth:
+			log.Println("User is currently in a session")
+		case incorrectToken:
+			log.Println("Incorrect session token")
+		}
+		return m, err
+	}
+
+	log.Println("User is logging out")
 
 	// remove client token from list of active tokens
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(bucket_tokens)
+		if err != nil {
+			panic("Error opening Tokens bucket")
+		}
+		err = bucket.Delete([]byte(username))
+		if err != nil {
+			panic("Error writing to Tokens bucket")
+		}
+		return nil
+	})
 
-	return c, nil
+	log.Println("Active session terminated")
 
+	return m, nil
 }

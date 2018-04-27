@@ -56,6 +56,8 @@ func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
  */
 func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 
+	var c *pb.Credentials
+
 	// establish a reader to read username
 	reader := bufio.NewReader(os.Stdin)
 
@@ -67,35 +69,33 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 		fmt.Println("Error in reading username, setting to default 'pk419'.")
 	}
 
-	// get password securely from command line
-	fmt.Printf("password: ")
-	password, err := terminal.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		log.Println(err)
-		fmt.Println("Error in reading password, setting to default 'spring18'")
+	for {
+
+		// get password securely from command line
+		fmt.Printf("password: ")
+		password, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			log.Println(err)
+			fmt.Println("Error in reading password, setting to default 'spring18'")
+		}
+
+		// create credentials to pass through TLS pipe in rpc call
+		cred := &pb.Credentials{Username: username, Password: string(password)}
+
+		// RPC authentication method (send credentials)
+		c, err = sslClient.Authenticate(context.Background(), cred)
+		if err != nil {
+			fmt.Print("\n")
+			log.Println(err)
+		}
 	}
-
-	// create credentials to pass through TLS pipe in rpc call
-	cred := &pb.Credentials{Username: username, Password: string(password)}
-
-	// RPC authentication method (send credentials)
-	c, err := sslClient.Authenticate(context.Background(), cred)
-	if err != nil {
-		log.Println(err)
-		// should loop back to give new password or gracefully log out
-		panic("Error in sslClient.Authenticate rpc call.")
-	}
-
-	// Print token
-	token := c.Password
 
 	// TODO: reset password so that it isn't in memory
 
 	// empty print for formatting
-	fmt.Println()
+	fmt.Println("Authenticated")
 
-	return username, token
-
+	return username, c.Password
 }
 
 /**
@@ -104,10 +104,20 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
  */
 func parse(cmd string) (string, string, string, bool) {
 
+	// remove new-line character
+	if strings.HasSuffix(cmd, "\n") {
+		cmd = cmd[:len(cmd)-1]
+	}
+
 	words := strings.Split(cmd, " ")
 
 	command := words[0] // check to make sure this exists
-	group := words[1]   // check to make sure this exists
+
+	if command == "END" {
+		return command, "", "", false
+	}
+
+	group := words[1] // check to make sure this exists
 	message := words[2:len(words)]
 	err := false
 
@@ -121,10 +131,16 @@ func parse(cmd string) (string, string, string, bool) {
  */
 func interactWithBoard(username string, token string, sslClient pb.SSLboardClient) {
 
-	flg := true
 	reader := bufio.NewReader(os.Stdin)
+	defer func() {
+		_, err := sslClient.End(context.Background(),
+			&pb.Message{Token: token, Username: username, Group: "", Msg: ""})
+		if err != nil {
+			fmt.Println("some error")
+		}
+	}()
 
-	for flg {
+	for {
 
 		// prompt
 		fmt.Printf("> ")
@@ -142,27 +158,26 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 
 		// create struct to send over TLS pipe
 		packet := &pb.Message{Token: token, Username: username, Group: group, Msg: message}
-		packet2 := &pb.Credentials{Username: username}
 
 		// GET rpc call
 		if command == "GET" {
 			sslClient.Get(context.Background(), packet)
+
+			// check for errors
+
+			// print output
+
 		} else if command == "POST" {
 			sslClient.Post(context.Background(), packet)
+
+			// check for errors
+
 		} else if command == "END" {
-			sslClient.End(context.Background(), packet2)
+			break
 		} else {
 			fmt.Println("You issued an incorrect command. <GET/POST/END> are acceptable.")
 		}
-
 	}
-
-	// take input from command line
-
-	// set pb struct
-
-	// do RPC call
-
 }
 
 /**
@@ -171,23 +186,22 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
  */
 func main() {
 
-	// checks that a IP address was specified
+	// get server IP address
 	if len(os.Args) != 2 {
 		log.Printf("Usage: %s <ip-addr>.\n", os.Args[0])
 		panic("*E* Error in command line args.")
 	}
-
 	addr := os.Args[1]
 	log.Println("Connecting to: ", addr)
 
-	// conn is of type pb.SSLboardClient
+	// connect to server using grpc over TLS
 	sslClient, grpcConn := connectToServer(addr)
 	defer grpcConn.Close()
 
-	// FIRST: verify username/password combination
+	// verify username/password combination
 	username, token := verifyLogin(sslClient)
 
-	// SECOND: allow interaction with the message board
+	// interact with the message board
 	interactWithBoard(username, token, sslClient)
 
 	fmt.Println("Exiting client.")

@@ -4,10 +4,9 @@ package pb;
 message Message {
 
   string token = 1;
-  string timestamp = 2;
-  string username = 3;
-  string group = 4;
-  string msg = 5;
+  string username = 2;
+  string group = 3;
+  string msg = 4;
 
 }
 
@@ -22,5 +21,5 @@ service SSLboard {
   rpc Authenticate (Credentials) returns (Credentials) {}
   rpc Get (Message) returns (Message) {}
   rpc Post (Message) returns (Message) {}
-  rpc End (Credentials) returns (Credentials) {}
+  rpc End (Message) returns (Message) {}
 }
