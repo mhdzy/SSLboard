@@ -19,7 +19,13 @@ type SSLboardServer struct{}
  */
 func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*pb.Credentials, error) {
 
-	log.Println("RPC call to service.Authenticate")
+	log.Println("RPC call to Authenticate()")
+
+	var hash []byte
+	var bucket_users = []byte("Users")
+	var bucket_tokens = []byte("Tokens")
+	var userNotExist = errors.New("Username does not exist")
+	var userInSession = errors.New("User is currently in a session")
 
 	// open database
 	db, err := bolt.Open("./board.db", 0777, nil)
@@ -29,23 +35,21 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	defer db.Close()
 
 	// extract username from the struct passed through TLS
-	var hash []byte
-	bucket_name := []byte("Users")
 	username := []byte(c.Username)
 	password := []byte(c.Password)
 
 	// get username from database
 	err = db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(bucket_name)
+		bucket, err := tx.CreateBucketIfNotExists(bucket_users)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		// get hash and salt from user bucket
 		stored_hash := bucket.Get(username)
 		if stored_hash == nil {
-			log.Println("Username does not exist; adding now")
-			return errors.New("Username does not exist")
+			log.Println("Username does not exist")
+			return userNotExist
 		}
 		hash = make([]byte, len(stored_hash))
 		copy(hash, stored_hash)
@@ -54,60 +58,60 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	})
 
 	if err != nil {
+		switch err {
+		case userNotExist:
 
-		// create new key pair
-		hash, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// store username and hash
-		err = db.Update(func(tx *bolt.Tx) error {
-			bucket, err := tx.CreateBucketIfNotExists(bucket_name)
+			// create new key pair
+			hash, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
 			if err != nil {
-				return err
+				panic("Error hashing password")
 			}
 
-			err = bucket.Put(username, hash)
+			// store username and hash
+			err = db.Update(func(tx *bolt.Tx) error {
+				bucket, err := tx.CreateBucketIfNotExists(bucket_users)
+				if err != nil {
+					return err
+				}
+				err = bucket.Put(username, hash)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
 			if err != nil {
-				return err
+				panic("Error storing hash")
 			}
+			log.Println("Added new user")
 
-			return nil
-		})
-
-		if err != nil {
-			log.Fatal(err)
+		default:
+			panic("Error opening Users bucket")
 		}
-
-		log.Println("Added new user")
 
 	} else {
 
 		// check if user is currently in a session
 		err = db.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte("Tokens"))
+			bucket := tx.Bucket(bucket_tokens)
 			if bucket == nil {
-				return errors.New("Bucket does not exist")
+				panic("Token bucket does not exist")
 			}
 			token := bucket.Get(username)
 			if token != nil {
-				return errors.New("User is currently in a session")
+				return userInSession
 			}
 			return nil
 		})
-
 		if err != nil {
-			log.Fatal(err)
-			return c, err
+			log.Println("User is currently in a session")
+			return c, err // returning userInSession error
 		}
 
 		// compare stored hashed password and password from database
 		err = bcrypt.CompareHashAndPassword(hash, password)
-
 		if err != nil {
 			log.Println("Incorrect password")
-			return c, err
+			return c, err // may want to return special error (incorrect password)
 		}
 	}
 
@@ -117,23 +121,23 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	token := make([]byte, 16)
 	n, err := rand.Read(token)
 	if n != 16 {
-		log.Fatal(err)
+		panic("Error generating token")
 	}
 
 	// store token
 	err = db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("Tokens"))
+		bucket, err := tx.CreateBucketIfNotExists(bucket_tokens)
 		if err != nil {
-			log.Fatal(err)
+			panic("Error opening Tokens bucket")
 		}
-
 		err = bucket.Put(username, token)
 		if err != nil {
-			return err
+			panic("Error writing to Tokens bucket")
 		}
-
 		return nil
 	})
+
+	log.Println("Returning session token")
 
 	// return token
 	c.Password = string(token)
