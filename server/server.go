@@ -64,7 +64,6 @@ func main() {
 	// listen on the given port
 	ln := listener(config)
 
-	// maybe
 	srv := grpc.NewServer()
 	pb.RegisterSSLboardServer(srv, &SSLboardServer{})
 

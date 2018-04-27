@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -20,33 +21,88 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 
 	log.Println("RPC call to service.Authenticate")
 
+	// open database
+	db, err := bolt.Open("./board.db", 0777, nil)
+	if err != nil {
+		return c, err
+	}
+	defer db.Close()
+
 	// extract username from the struct passed through TLS
-	usr := c.Username
-	pwd := []byte(c.Password)
+	var hash []byte
+	bucket_name := []byte("Users")
+	username := []byte(c.Username)
+	password := []byte(c.Password)
 
-	// add salt and hash
-	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	// get username from database
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(bucket_name)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// get hash and salt from user bucket
+		stored_hash := bucket.Get(username)
+		if stored_hash == nil {
+			log.Println("Username does not exist; adding now")
+			return errors.New("Username does not exist")
+		}
+		hash = make([]byte, len(stored_hash))
+		n := copy(hash, stored_hash)
+		fmt.Println(n)
+
+		return nil
+	})
+
+	// username does not exist: create new key pair
 	if err != nil {
-		log.Println(err)
+		hash, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
+		if err != nil {
+			log.Println(err)
+		}
+		fmt.Println(string(hash))
+		err = bcrypt.CompareHashAndPassword(hash, password)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// store username and hash
+		err = db.Update(func(tx *bolt.Tx) error {
+			bucket, err := tx.CreateBucketIfNotExists(bucket_name)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = bucket.Put(username, hash)
+			if err != nil {
+				return err
+			}
+			hash = bucket.Get(username)
+			fmt.Println(string(hash))
+
+			return nil
+		})
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Added new user")
+		return c, err
+	} else {
+		// compare stored hashed password and password from database
+		fmt.Println(string(hash))
+		err = bcrypt.CompareHashAndPassword(hash, password)
+		if err != nil {
+			// username exists but password doesn't match: return error
+			log.Println("Username exists but password doesn't match: return error")
+			return c, err
+		} else {
+			// user is authenticated: send back unique token
+			log.Println("User is authenticated: send back unique token")
+			return c, err
+		}
 	}
-
-	// print out username and password and hash for debugging purposes
-	fmt.Printf("*debug* username: %s", usr)
-	fmt.Printf("*debug* password: %s\n", string(pwd))
-	fmt.Printf("*debug* hash pwd: %s\n", string(hash))
-
-	// compare stored hashed password and password from database
-	err = bcrypt.CompareHashAndPassword(hash, pwd)
-	if err != nil {
-		log.Println(err)
-	}
-
-	// \n is used to create formatting
-	log.Printf("Authenticated user: %s\n", usr)
-
-	// PLEASE SEND BACK UNIQUE TOKEN ID FOR USER
-
-	// compare with stored db credentials
 
 	return c, nil
 }
@@ -61,9 +117,6 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	log.Printf("Username: %s", m.Username) // m.Username CONTAINS A \n
 	log.Printf("Group: %s", m.Group)       // m.Group CONTAINS A \n
 	log.Printf("Message: %s\n", m.Msg)     // \n for formatting
-
-	db, _ := bolt.Open("./my.db", 0600, nil)
-	db.Close()
 
 	return m, nil
 
