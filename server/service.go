@@ -202,20 +202,12 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 
 	log.Println("RPC call to Get()")
 
-	var userNotAuth = errors.New("User is not authenticated")
-	var incorrectToken = errors.New("Incorrect session token")
-
 	token := m.Token
 	username := m.Username
 
 	err := validateToken(token, username)
 	if err != nil {
-		switch err {
-		case userNotAuth:
-			log.Println("User is currently in a session")
-		case incorrectToken:
-			log.Println("Incorrect session token")
-		}
+		log.Println(err)
 		return m, err
 	}
 
@@ -229,7 +221,6 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 
 	fmt.Printf("Username: %s\n", m.Username)
 	fmt.Printf("Group: %s\n", m.Group)
-	fmt.Printf("Message: %s\n", m.Msg)
 
 	return m, nil
 }
@@ -242,20 +233,12 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 
 	log.Println("RPC call to Post()")
 
-	var userNotAuth = errors.New("User is not authenticated")
-	var incorrectToken = errors.New("Incorrect session token")
-
 	token := m.Token
 	username := m.Username
 
 	err := validateToken(token, username)
 	if err != nil {
-		switch err {
-		case userNotAuth:
-			log.Println("User is currently in a session")
-		case incorrectToken:
-			log.Println("Incorrect session token")
-		}
+		log.Println(err)
 		return m, err
 	}
 
@@ -283,20 +266,13 @@ func (s *SSLboardServer) End(_ context.Context, m *pb.Message) (*pb.Message, err
 	log.Println("RPC call to End()")
 
 	var bucket_tokens = []byte("Tokens")
-	var userNotAuth = errors.New("User is not authenticated")
-	var incorrectToken = errors.New("Incorrect session token")
 
 	token := m.Token
 	username := m.Username
 
 	err := validateToken(token, username)
 	if err != nil {
-		switch err {
-		case userNotAuth:
-			log.Println("User is currently in a session")
-		case incorrectToken:
-			log.Println("Incorrect session token")
-		}
+		log.Println(err)
 		return m, err
 	}
 

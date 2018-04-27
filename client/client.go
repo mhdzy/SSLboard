@@ -145,7 +145,7 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 		_, err := sslClient.End(context.Background(),
 			&pb.Message{Token: token, Username: username, Group: "", Msg: ""})
 		if err != nil {
-			fmt.Println("some error")
+			fmt.Println(err)
 		}
 	}()
 
@@ -170,16 +170,22 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 
 		// GET rpc call
 		if command == "GET" {
-			sslClient.Get(context.Background(), packet)
+			_, err := sslClient.Get(context.Background(), packet)
 
 			// check for errors
+			if err != nil {
+				fmt.Println(err)
+			}
 
 			// print output
 
 		} else if command == "POST" {
-			sslClient.Post(context.Background(), packet)
+			_, err := sslClient.Post(context.Background(), packet)
 
 			// check for errors
+			if err != nil {
+				fmt.Println(err)
+			}
 
 		} else if command == "END" {
 			break
