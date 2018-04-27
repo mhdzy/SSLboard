@@ -78,6 +78,10 @@ With `POST` calls, our service opens a bucket to the <GRP> specified in the comm
 
 We setup a service, outlined in `/server/service.go`, to handle remote calls. In server.go, we have a main method that initiates a `gRPC service` and then calls `Serve()`, which allows the gRPC module to activate and handle requests. When an RPC is made, gRPC interprets the call and spawns a thread in the service to handle the function call (automatically). This simplifies multi-threading for us. Alternatively, we could have run a command `go funcName()`, which is Go's way to spawn a thread, however gRPC handles all of this for us. We have a very good understanding of multi-threading from the CS 214 and 416 experiences, so we felt comfortable abstracting this step of the process. Client-side, we open a connection to the corresponding gRPC server, and get handed back an object which allows us to make 'local calls' on the struct, which are interpreted by gRPC and handed to the service to execute.
 
+#### User Session Tokens
+
+Since we were using RPC's, theoretically, any connected (via `grpc.Dial()` call) user could make RPC's to our service. Thus, we needed to create a list of unique user session ID tokens, stored in the bolt database. We then authenticate each remote procedure call by checking the given username:token pair against our database, and then validate each call as coming from an authenticated user.
+
 ## Challenges
 
 #### Learning Golang (Go)
@@ -86,7 +90,7 @@ To accomplish this project, our entire team needed to learn Go from scratch. Non
 
 #### User Session Tokens
 
-Since we were using RPC's, theoretically, any connected (via `grpc.Dial()` call) user could make RPC's to our service. Thus, we needed to create a list of unique user session ID tokens, stored in the bolt database. We then authenticate each remote procedure call by checking the given username:token pair against our database, and then validate each call as coming from an authenticated user.
+As explained above, user session tokens protect foreign clients from using RPC's to access our database. This step in development took a while, notably because we had a design choice that we would not allow multi-client logins (same user/pass combination on different clients). Thus, we had to ensure that only one instance of a username was logged in at any given time. Unfortunately, this step took relatively the longest compared to how much time we expected to spend on it.
 
 #### gRPC
 
