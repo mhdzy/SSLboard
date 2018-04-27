@@ -86,7 +86,7 @@ To accomplish this project, our entire team needed to learn Go from scratch. Non
 
 #### User Session Tokens
 
-Since we were using RPC's, theoretically, any connected (via `grpc.Dial()` call) user could make RPC's to our service. Thus, we needed to create a list of unique user session ID tokens, stored in the bolt database. 
+Since we were using RPC's, theoretically, any connected (via `grpc.Dial()` call) user could make RPC's to our service. Thus, we needed to create a list of unique user session ID tokens, stored in the bolt database. We then authenticate each remote procedure call by checking the given username:token pair against our database, and then validate each call as coming from an authenticated user.
 
 #### gRPC
 
