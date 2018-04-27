@@ -31,10 +31,15 @@ The external packages we used in this project include:
     github.com/boltdb/bolt
 
 We use grpc (Google's Remote Procedure Calls) to simplify the interaction between the client and the server.
+
 We use grpc/credentials to create transport credentials based on TLS. 
+
 We use crypto/ssh/terminal to securely read passwords from the command line (not showing pwd characters == 'securely')
+
 We use crypto/bcrypt for salting and hashing our passwords.
+
 We use github.com/golang/protobuf and a .proto file to implement our grpc service, which is compiled with the command 'protoc'.
+
 We use github.com/boltdb/bolt as a back-end database, a key-value pair which uses 'buckets' for organization.
 
 ## Design
