@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/SleightOfHandzy/SSLboard/pb"
+	"github.com/boltdb/bolt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -60,6 +61,9 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	log.Printf("Username: %s", m.Username) // m.Username CONTAINS A \n
 	log.Printf("Group: %s", m.Group)       // m.Group CONTAINS A \n
 	log.Printf("Message: %s\n", m.Msg)     // \n for formatting
+
+	db, _ := bolt.Open("./my.db", 0600, nil)
+	db.Close()
 
 	return m, nil
 
