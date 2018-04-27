@@ -54,7 +54,7 @@ func connectToServer(addr string) (pb.SSLboardClient, *grpc.ClientConn) {
  * func verifyLogin
  * Verifies a username/password combination in the server's database.
  */
-func verifyLogin(sslClient pb.SSLboardClient) string {
+func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 
 	// establish a reader to read username
 	reader := bufio.NewReader(os.Stdin)
@@ -79,18 +79,22 @@ func verifyLogin(sslClient pb.SSLboardClient) string {
 	cred := &pb.Credentials{Username: username, Password: string(password)}
 
 	// RPC authentication method (send credentials)
-	_, err = sslClient.Authenticate(context.Background(), cred)
+	c, err := sslClient.Authenticate(context.Background(), cred)
 	if err != nil {
 		log.Println(err)
+		// should loop back to give new password or gracefully log out
 		panic("Error in sslClient.Authenticate rpc call.")
 	}
+
+	// Print token
+	token := c.Password
 
 	// TODO: reset password so that it isn't in memory
 
 	// empty print for formatting
 	fmt.Println()
 
-	return username
+	return username, token
 
 }
 
@@ -115,7 +119,7 @@ func parse(cmd string) (string, string, string, bool) {
  * func interactWithBoard
  * Authenticates user, takes arguments from command line
  */
-func interactWithBoard(username string, sslClient pb.SSLboardClient) {
+func interactWithBoard(username string, token string, sslClient pb.SSLboardClient) {
 
 	flg := true
 	reader := bufio.NewReader(os.Stdin)
@@ -137,7 +141,7 @@ func interactWithBoard(username string, sslClient pb.SSLboardClient) {
 		}
 
 		// create struct to send over TLS pipe
-		packet := &pb.Message{Username: username, Group: group, Msg: message}
+		packet := &pb.Message{Token: token, Username: username, Group: group, Msg: message}
 		packet2 := &pb.Credentials{Username: username}
 
 		// GET rpc call
@@ -181,10 +185,10 @@ func main() {
 	defer grpcConn.Close()
 
 	// FIRST: verify username/password combination
-	username := verifyLogin(sslClient)
+	username, token := verifyLogin(sslClient)
 
 	// SECOND: allow interaction with the message board
-	interactWithBoard(username, sslClient)
+	interactWithBoard(username, token, sslClient)
 
 	fmt.Println("Exiting client.")
 

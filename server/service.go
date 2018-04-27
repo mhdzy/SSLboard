@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
+	"math/rand"
 
 	"github.com/SleightOfHandzy/SSLboard/pb"
 	"github.com/boltdb/bolt"
@@ -48,20 +48,15 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 			return errors.New("Username does not exist")
 		}
 		hash = make([]byte, len(stored_hash))
-		n := copy(hash, stored_hash)
-		fmt.Println(n)
+		copy(hash, stored_hash)
 
 		return nil
 	})
 
-	// username does not exist: create new key pair
 	if err != nil {
+
+		// create new key pair
 		hash, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
-		if err != nil {
-			log.Println(err)
-		}
-		fmt.Println(string(hash))
-		err = bcrypt.CompareHashAndPassword(hash, password)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -70,15 +65,13 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 		err = db.Update(func(tx *bolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucket_name)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 
 			err = bucket.Put(username, hash)
 			if err != nil {
 				return err
 			}
-			hash = bucket.Get(username)
-			fmt.Println(string(hash))
 
 			return nil
 		})
@@ -88,22 +81,62 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 		}
 
 		log.Println("Added new user")
-		return c, err
+
 	} else {
-		// compare stored hashed password and password from database
-		fmt.Println(string(hash))
-		err = bcrypt.CompareHashAndPassword(hash, password)
+
+		// check if user is currently in a session
+		err = db.View(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte("Tokens"))
+			if bucket == nil {
+				return errors.New("Bucket does not exist")
+			}
+			token := bucket.Get(username)
+			if token != nil {
+				return errors.New("User is currently in a session")
+			}
+			return nil
+		})
+
 		if err != nil {
-			// username exists but password doesn't match: return error
-			log.Println("Username exists but password doesn't match: return error")
+			log.Fatal(err)
 			return c, err
-		} else {
-			// user is authenticated: send back unique token
-			log.Println("User is authenticated: send back unique token")
+		}
+
+		// compare stored hashed password and password from database
+		err = bcrypt.CompareHashAndPassword(hash, password)
+
+		if err != nil {
+			log.Println("Incorrect password")
 			return c, err
 		}
 	}
 
+	log.Println("User is authenticated")
+
+	// generate token
+	token := make([]byte, 16)
+	n, err := rand.Read(token)
+	if n != 16 {
+		log.Fatal(err)
+	}
+
+	// store token
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("Tokens"))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = bucket.Put(username, token)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// return token
+	c.Password = string(token)
 	return c, nil
 }
 
