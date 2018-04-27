@@ -358,7 +358,8 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 		}
 		return nil
 	})
-	fmt.Println("Posted message to bucket")
+
+	fmt.Println("Posted message to bucket.")
 
 	// send back list of available groups
 	err = db.View(func(tx *bolt.Tx) error {
