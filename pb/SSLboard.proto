@@ -7,6 +7,8 @@ message Message {
   string username = 2;
   string group = 3;
   string msg = 4;
+  repeated string groups = 5;
+  repeated string messages = 6;
 
 }
 
@@ -14,6 +16,7 @@ message Credentials {
 
   string username = 1;
   string password = 2;
+  repeated string groups = 3;
 
 }
 

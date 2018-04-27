@@ -182,7 +182,7 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 		}
 	}
 
-	log.Println("User has been authenticated.")
+	log.Printf("User '%s' has been authenticated.", c.Username)
 
 	// generate token
 	token := make([]byte, 16)
@@ -231,6 +231,7 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	}
 
 	fmt.Println(groups)
+	c.Groups = groups
 	return c, nil
 }
 
@@ -243,6 +244,10 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	fmt.Println("\nRPC call to Get()")
 	log.Printf("Username: %s\n", m.Username)
 	log.Printf("Group: %s\n", m.Group)
+
+	var groups []string
+	var bucket_groups = []byte("Groups")
+	var noGroups = errors.New("No available groups.")
 
 	token := m.Token
 	username := m.Username
@@ -263,6 +268,30 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	}
 	defer db.Close()
 
+	// send back list of available groups
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bucket_groups)
+		if bucket == nil {
+			return noGroups
+		}
+		s := bucket.Stats()
+		groups = make([]string, s.KeyN)
+
+		c := bucket.Cursor()
+		i := 0
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			groups[i] = string(v)
+			i += 1
+		}
+		return nil
+	})
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Println(groups)
+	m.Groups = groups
+
 	return m, nil
 }
 
@@ -277,7 +306,9 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 	log.Printf("Group: %s\n", m.Group)
 	log.Printf("Message: %s\n", m.Msg)
 
+	var groups []string
 	var bucket_groups = []byte("Groups")
+	var noGroups = errors.New("No available groups.")
 
 	token := m.Token
 	username := m.Username
@@ -320,6 +351,31 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 		return nil
 	})
 	fmt.Println("Posted message to bucket")
+
+	// send back list of available groups
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bucket_groups)
+		if bucket == nil {
+			return noGroups
+		}
+		s := bucket.Stats()
+		groups = make([]string, s.KeyN)
+
+		c := bucket.Cursor()
+		i := 0
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			groups[i] = string(v)
+			i += 1
+		}
+		return nil
+	})
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Println(groups)
+	m.Groups = groups
+
 	return m, nil
 }
 
@@ -362,7 +418,7 @@ func (s *SSLboardServer) End(_ context.Context, m *pb.Message) (*pb.Message, err
 		return nil
 	})
 
-	log.Println("Active session terminated.")
+	log.Printf("Active session for user '%s' terminated.", m.Username)
 
 	return m, nil
 }

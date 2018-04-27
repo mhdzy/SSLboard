@@ -103,6 +103,17 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 	// empty print for formatting
 	fmt.Printf("\nAuthenticated user: %s.\n\n", username)
 
+	// print groups out to the client
+	if c.Groups == nil {
+		fmt.Printf("There are currently no groups in the messageBoard.\n")
+	} else {
+		fmt.Printf("Possible groups to GET from and POST to include: \n")
+		for i := 0; i < len(c.Groups); i++ {
+			fmt.Printf("%s ", c.Groups[i])
+		}
+		fmt.Printf("\n")
+	}
+
 	return username, c.Password
 }
 
@@ -197,17 +208,37 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 
 		// RPC calls are made here
 		if command == "GET" {
-			_, err := sslClient.Get(context.Background(), packet)
+			c, err := sslClient.Get(context.Background(), packet)
 
 			// check for errors
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			// print result of get
+			// print messages out to the client
+			if c.Messages == nil {
+				fmt.Printf("There are currently no messages in the group.\n\n")
+			} else {
+				fmt.Printf("Current Messages: \n")
+				for i := 0; i < len(c.Messages); i++ {
+					fmt.Printf("%s\n", c.Messages[i])
+				}
+				fmt.Printf("\n")
+			}
+
+			// print groups out to the client
+			if c.Groups == nil {
+				fmt.Printf("There are currently no groups in the messageBoard.\n")
+			} else {
+				fmt.Printf("Possible groups to GET from and POST to include: \n")
+				for i := 0; i < len(c.Groups); i++ {
+					fmt.Printf("%s ", c.Groups[i])
+				}
+				fmt.Printf("\n")
+			}
 
 		} else if command == "POST" {
-			_, err := sslClient.Post(context.Background(), packet)
+			c, err := sslClient.Post(context.Background(), packet)
 
 			// check for errors
 			if err != nil {
@@ -215,6 +246,17 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 			}
 
 			fmt.Printf("Call to Post() succeeded.\n\n")
+
+			// print groups out to the client
+			if c.Groups == nil {
+				fmt.Printf("There are currently no groups in the messageBoard.\n")
+			} else {
+				fmt.Printf("Possible groups to GET from and POST to include: \n")
+				for i := 0; i < len(c.Groups); i++ {
+					fmt.Printf("%s ", c.Groups[i])
+				}
+				fmt.Printf("\n")
+			}
 
 		} else if command == "END" {
 			break // will stack defered function call and exit client
