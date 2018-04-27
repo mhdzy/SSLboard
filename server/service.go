@@ -28,7 +28,7 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	var userInSession = errors.New("User is currently in a session")
 
 	// open database
-	db, err := bolt.Open("./board.db", 0777, nil)
+	db, err := bolt.Open("./board.db", 0666, nil)
 	if err != nil {
 		return c, err
 	}
@@ -91,10 +91,10 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 	} else {
 
 		// check if user is currently in a session
-		err = db.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket(bucket_tokens)
-			if bucket == nil {
-				panic("Token bucket does not exist")
+		err = db.Update(func(tx *bolt.Tx) error {
+			bucket, err := tx.CreateBucketIfNotExists(bucket_tokens)
+			if err != nil {
+				panic("Error opening Tokens bucket")
 			}
 			token := bucket.Get(username)
 			if token != nil {

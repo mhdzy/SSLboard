@@ -11,6 +11,7 @@ import (
 	"net"
 
 	"github.com/SleightOfHandzy/SSLboard/pb"
+	"github.com/boltdb/bolt"
 	"google.golang.org/grpc"
 )
 
@@ -51,19 +52,19 @@ func listener(config *tls.Config) net.Listener {
  */
 func main() {
 
-	log.Printf("Server running on %s.\n", PORT)
+	log.Printf("Server running on localhost%s.\n", PORT)
 
 	// load Bolt db
-	// db, err := bolt.Open("./board.db", 0777, nil)
-	// if err != nil {
-	// 	panic("Database failed to open")
-	// }
-	// defer db.Close()
-	//
-	// db.Update(func(tx *bolt.Tx) error {
-	// 	tx.DeleteBucket([]byte("Tokens"))
-	// 	return nil
-	// })
+	db, err := bolt.Open("./board.db", 0666, nil)
+	if err != nil {
+		panic("Database failed to open")
+	}
+
+	db.Update(func(tx *bolt.Tx) error {
+		tx.DeleteBucket([]byte("Tokens"))
+		return nil
+	})
+	db.Close()
 
 	// load certificate from files
 	cert := loadKeyPairs()
