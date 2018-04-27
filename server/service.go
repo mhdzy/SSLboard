@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -344,7 +345,14 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 		if err != nil {
 			panic("Error opening bucket.")
 		}
-		err = bucket2.Put([]byte(time.Now().String()), message)
+
+		// cat USERNAME:message
+		var buffer bytes.Buffer
+		buffer.WriteString(m.Username)
+		buffer.WriteString("\t")
+		buffer.WriteString(string(message))
+
+		err = bucket2.Put([]byte(time.Now().String()), []byte(buffer.String()))
 		if err != nil {
 			panic("Error writing to Tokens bucket.")
 		}
