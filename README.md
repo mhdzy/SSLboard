@@ -7,6 +7,10 @@ We designed our project from the ground up, beginning with a simple client/serve
 
 We chose to use Go, a relatively new language that simplified a lot of C functionality, making it easier to implement a lot of the features required for this project. We used the `crypto/tls` package in Go for any SSL/TLS functions (certificates, TLS handshakes, etc.).
 
+We also chose to use a fair amount of external libraries to 'trick out' our project, which we felt would ease a lot of development time -- and it did! Instead of spending time obsessing about delimiters, sending strings over the TLS pipe using Read/Write calls, and parsing on the server-side, GRPC calls and protobuffers allowed us to condense our message sending into structs over RPC calls. 
+
+We had somewhat of a challenge figuring out boltDB, our database package. It was tricky and confusing setting this up, but offered a big learning experience in debugging since none of us had prior formal experience (academic or professional) with databases.
+
 ## Installation
 
 In order to install Go, you must install the appropriate package from the following link:
@@ -17,7 +21,23 @@ Then, you need to place the source directory (.../SSLboard/) in ~/go/src/github.
 
     ~/go/src/github.com/SleightOfHandzy/SSLboard/...
     
-From this point forward, you will be able to cd into a directory, compile, and execute our project.
+Next, you will need to place your .key and .crt files (openSSL generated key and certificate files) into the `/SSLboard/server/` directory. This is where our code assumes they will be, and it will compile but NOT work if they are not placed in this package.
+    
+From this point forward, you will be able to cd into a directory, compile, and execute our project. If you have trouble compiling our project in Windows, we advise you switch to a Linux or macOS machine.
+
+## Execution
+
+To be able to execute our project, you will need to first compile, then run both the server and client modules.
+
+First, you will want to cd into the `/SSLboard/server/` module, and type: `go build .`
+
+Then, you will need to run the server. Our code automatically runs it on port 8080, and this can be changed internally within the server.go file. You should have a go executable called `server` in your current directory. To execute this file, type: `./server`
+
+Second, you will want to open a new Terminal window (or whatever shell you use) and cd into the /SSLboard/client/ module, and repeat the same build instruction. the '.' operator means that it will compile all .go files in the current directory. Just to re-iterate, you must type: `go build .`
+
+Once this command finishes, you should have a go executable called `client` in your current directory. To execute this file, type: `./client server_IPaddress:8080`
+
+Once these two are running in tandem, the client will ask you for authentication (username, password), and after authenticating yourself, you will be able to send commands to the Message Board.
 
 ## Packages
 
@@ -30,33 +50,33 @@ The external packages we used in this project include:
     github.com/golang/protobuf
     github.com/boltdb/bolt
 
-We use grpc (Google's Remote Procedure Calls) to simplify the interaction between the client and the server.
+We use `grpc` (Remote Procedure Calls) to simplify the interaction between the client and the server.
 
-We use grpc/credentials to create transport credentials based on TLS. 
+We use `grpc/credentials` to create transport credentials based on TLS. 
 
-We use crypto/ssh/terminal to securely read passwords from the command line (not showing pwd characters == 'securely')
+We use `crypto/ssh/terminal` to securely read passwords from the command line (not showing pwd characters == 'securely')
 
-We use crypto/bcrypt for salting and hashing our passwords.
+We use `crypto/bcrypt` for salting and hashing our passwords server-side.
 
-We use github.com/golang/protobuf and a .proto file to implement our grpc service, which is compiled with the command 'protoc'.
+We use `github.com/golang/protobuf` and a .proto file to implement our grpc service, which is compiled into a .go file (found in SSLboard/pb) with the command 'protoc' (not included in this project).
 
-We use github.com/boltdb/bolt as a back-end database, a key-value pair which uses 'buckets' for organization.
+We use `github.com/boltdb/bolt` as a back-end database, a key-value pair which uses 'buckets' for organization.
 
 ## Design
 
-First, we implemented a simple client/server model in Go, using TLS sockets and openSSL to generate a certificate and a key. Then, we added GRPC functionality to simplify remote calls and eliminate parsing using delimiters (which could appear in a command, group name, message, and break our code). Once we had the basic structures set up, we added input via terminal: (username, password) verification, accepting a command (<CMD> <GRP> <MSG>), parsed that command, and sent a corresponding RPC to the correct server-side function in /server/service.go. 
+First, we implemented a simple client/server model in Go, using TLS sockets and openSSL to generate a certificate and a key. Then, we added GRPC functionality to simplify remote calls and eliminate parsing using delimiters (which could appear in a command, group name, message, and break our code). Once we had the basic structures set up, we added input via terminal: (username, password) verification, accepting a command (<CMD> <GRP> <MSG>), parsed that command, and sent a corresponding RPC to the correct server-side function in `/server/service.go`. 
   
-We used the structs auto-generated by 'protoc' (Message and Credentials structs) to send our complex messages over the pipe. You can directly view the result of the /pb/SSLboard.proto compilation in /pb/SSLboard.pb.go. This eliminated the need for delimitation and Read/Write calls over the TLS socket.
+We used the structs auto-generated by `protoc` (Message and Credentials structs) to send our complex messages over the pipe. You can directly view the result of the `/pb/SSLboard.proto` compilation in `/pb/SSLboard.pb.go`. This eliminated the need for delimitation and Read/Write calls over the TLS socket.
 
-Then, we implemented our database to handle all calls for GET and POST. We store username-sessionTokenID as key-value pairs to validate that an RPC is being called by an authenticated (logged-in) user. If the database fails to find a match, the RPC was made by a non-authenticated user. We use a separate bucket (group) for each group name. If the bucket does not exist, the group does not exist. 
+Then, we implemented our database to handle all calls for `GET` and `POST`. We store username-sessionTokenID as key-value pairs to validate that an RPC is being called by an authenticated (logged-in) user. If the database fails to find a match, the RPC was made by a non-authenticated user. We use a separate bucket (group) for each group name. If the bucket does not exist, the group does not exist. 
 
-With GET calls, our service fetches all known messages in a certain group (bucket) and returns them to the client to quickly output to the terminal. If the <GRP> specified does not exist, an error will be returned.
+With `GET` calls, our service fetches all known messages in a certain group (bucket) and returns them to the client to quickly output to the terminal. If the <GRP> specified does not exist, an error will be returned.
 
-With POST calls, our service opens a bucket to the <GRP> specified in the command arguments (error on non-existent bucket), and then appends the message to the end of the bucket. On success, a success message will be returned, and on a non-existent group name, an error will be returned.
+With `POST` calls, our service opens a bucket to the <GRP> specified in the command arguments (error on non-existent bucket), and then appends the message to the end of the bucket. On success, a success message will be returned, and on a non-existent group name, an error will be returned.
 
 #### GRPC
 
-We setup a service, outlined in server/service.go, to handle remote calls. In server.go, we have a main method that initiates a grpc service and then calls Serve(), which allows the grpc module to activate and handle requests. Client-side, we open a connection to the corresponding grpc server, and get handed back an object which allows us to make 'local calls' on the struct, which are interpreted by grpc and handed to the service to execute.
+We setup a service, outlined in `/server/service.go`, to handle remote calls. In server.go, we have a main method that initiates a `grpc service` and then calls `Serve()`, which allows the grpc module to activate and handle requests. When an RPC is made, grpc interprets the call and spawns a thread in the service to handle the function call (automatically). This simplifies multi-threading for us. Alternatively, we could have run a command `go funcName()`, which is Go's way to spawn a thread, however grpc handles all of this for us. We have a very good understanding of multi-threading from the CS 214 and 416 experiences, so we felt comfortable abstracting this step of the process. Client-side, we open a connection to the corresponding grpc server, and get handed back an object which allows us to make 'local calls' on the struct, which are interpreted by grpc and handed to the service to execute.
 
 ## Challenges
 
@@ -66,7 +86,7 @@ To accomplish this project, our entire team needed to learn Go from scratch. Non
 
 #### User Session Tokens
 
-Since we were using RPC's, theoretically, any connected (via grpc.Dial() call) user could make RPC's to our service. Thus, we needed to create a list of unique user session ID tokens, stored in the bolt database. 
+Since we were using RPC's, theoretically, any connected (via `grpc.Dial()` call) user could make RPC's to our service. Thus, we needed to create a list of unique user session ID tokens, stored in the bolt database. 
 
 #### GRPC
 
@@ -74,11 +94,11 @@ Learning grpc was a bit of a challenge, especially figuring out how we would imp
 
 #### protobuffers
 
-Learning how to write a .proto file was rather easy, as we only had to define a few methods that we were to implement along with the necessary structs to send information over our connection. 
+Learning how to write a `.proto` file was rather easy, as we only had to define a few methods that we were to implement along with the necessary structs to send information over our connection. 
 
 #### dep (ensure)
 
-dep allowed us to bundle all external dependencies (the not-standard Go packages) and export them with our project. This offers an extremely large convinience to us, and to whoever is running our project by not requiring the executor to "go get" (command-line tool for downloading Go packages) any external packages.
+dep allowed us to bundle all external dependencies (the not-standard Go packages) and export them with our project. This offers an extremely large convinience to us, and to whoever is running our project by not requiring the executor to `go get` (command-line tool for downloading Go packages) any external packages.
 
 ## Solutions
 
