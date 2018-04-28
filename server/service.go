@@ -154,7 +154,7 @@ func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*
 		err = bcrypt.CompareHashAndPassword(hash, password)
 		if err != nil {
 			log.Println("Incorrect password.")
-			return c, err // may want to return special error (incorrect password)
+			return c, errors.New("Incorrect password.") // may want to return special error (incorrect password)
 		}
 	}
 

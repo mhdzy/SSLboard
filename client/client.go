@@ -21,8 +21,6 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-var STATUS bool = true
-
 /**
  * func connectToServer
  * Connects to the message board via net.Dial
@@ -65,6 +63,7 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 	if err != nil {
 		log.Println(err)
 		fmt.Println("Error in reading username, setting to default 'pk419'.")
+		username = "pk419"
 	}
 
 	// remove newline character
@@ -80,6 +79,7 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 		if err != nil {
 			log.Println(err)
 			fmt.Println("Error in reading password, setting to default 'spring18'")
+			password = []byte("spring18")
 		}
 
 		// create credentials to pass through TLS pipe in rpc call
@@ -90,9 +90,6 @@ func verifyLogin(sslClient pb.SSLboardClient) (string, string) {
 		if err != nil {
 			fmt.Print("\n")
 			log.Println(err)
-
-			// IF ERROR == User is currently in a session, FIX THIS
-
 			continue
 		}
 		break
@@ -277,11 +274,14 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 func main() {
 
 	// get server IP address
+	var addr string
 	if len(os.Args) != 2 {
-		log.Printf("Usage: %s <ip-addr>.\n", os.Args[0])
-		panic("*E* Error in command line args.")
+		log.Printf("Usage: %s <ip-addr:port>.\n", os.Args[0])
+		log.Printf("Error in command line args, defaulting to localhost:8080\n")
+		addr = "localhost:8080"
+	} else {
+		addr = os.Args[1]
 	}
-	addr := os.Args[1]
 
 	// connect to server using grpc over TLS
 	sslClient, grpcConn := connectToServer(addr)
@@ -293,6 +293,6 @@ func main() {
 	// interact with the message board
 	interactWithBoard(username, token, sslClient)
 
-	fmt.Println("Exiting client.")
+	fmt.Println("Ended session with server. Please run client to log back in.")
 
 }
