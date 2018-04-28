@@ -344,11 +344,12 @@ func (s *SSLboardServer) Post(_ context.Context, m *pb.Message) (*pb.Message, er
 
 		// cat USERNAME:message
 		var buffer bytes.Buffer
+		buffer.WriteString(" ")
 		buffer.WriteString(m.Username)
 		buffer.WriteString("\t")
 		buffer.WriteString(string(message))
 
-		err = bucket2.Put([]byte(time.Now().String()), []byte(buffer.String()))
+		err = bucket2.Put([]byte(string(time.Now().Format(time.RFC850))), []byte(buffer.String()))
 		if err != nil {
 			panic("Error writing to Tokens bucket.")
 		}
