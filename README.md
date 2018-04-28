@@ -19,9 +19,9 @@ In order to install Go, you must install the appropriate package from the follow
 
     https://golang.org/dl/
 
-Then, you need to place the source directory (.../SSLboard/) in ~/go/src/github.com/SleightOfHandzy/ to end up with a relative pathname of: 
+Then, you need to place the source directory (.../SSLboard/) in $GOROOT/src/github.com/SleightOfHandzy/ ($GOROOT is typically $HOME/Go/) to end up with a relative pathname of: 
 
-    ~/Go/src/github.com/SleightOfHandzy/SSLboard/...
+`~/Go/src/github.com/SleightOfHandzy/SSLboard/...`
    
 Now, you will need to generate a `.key` and `.crt` file using the following commands: 
 
