@@ -86,7 +86,7 @@ With `GET` calls, our service fetches all known messages in a certain group (buc
 
 With `POST` calls, our service opens a bucket to the <GRP> specified in the command arguments (error on non-existent bucket), and then appends the message to the end of the bucket. On success, a success message will be returned, and on a non-existent group name, an new bucket will be created for that group, and the message will be posted.
     
-With `END` calls, our service removes the active username:token pairing from the database, effectively rendering the token associated with the user calling `END` inactive. Then the client will exit, and subsequent calls to the service using that un-authenticated token will be denied.
+With `END` calls, our service removes the active username:token pairing from the database, effectively rendering the token associated with the user calling `END` inactive. Then the client will exit, and subsequent calls to the service using that un-authenticated token will be denied. The client will be able to log back in next time the client binary is executed.
 
 #### gRPC
 
