@@ -41,7 +41,7 @@ First, you will want to cd into the `/SSLboard/server/` module, and type: `go bu
 
 Then, you will need to run the server. Our code automatically runs it on port 8080, and this can be changed internally within the server.go file. You should have a go executable called `server` in your current directory. To execute this file, type: `./server`
 
-Second, you will want to open a new Terminal window (or whatever shell you use) and cd into the /SSLboard/client/ module, and repeat the same build instruction. the '.' operator means that it will compile all .go files in the current directory. Just to re-iterate, you must type: `go build .`
+Second, you will want to open a new Terminal window (or whatever shell you use) and cd into the /SSLboard/client/ module, and repeat the same build instruction. The '.' operator means that it will compile all .go files in the current directory. Just to re-iterate, you must type: `go build .`
 
 Once this command finishes, you should have a go executable called `client` in your current directory. To execute this file, type: `./client server_IPaddress:8080`
 
