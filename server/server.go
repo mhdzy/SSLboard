@@ -52,7 +52,7 @@ func listener(config *tls.Config) net.Listener {
  */
 func main() {
 
-	log.Printf("Server running on localhost%s.\n", PORT)
+	log.Printf("Server running on PORT %s.\n", PORT)
 
 	// load Bolt db
 	db, err := bolt.Open("./board.db", 0666, nil)

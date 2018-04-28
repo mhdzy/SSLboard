@@ -146,3 +146,14 @@ We also successfully tested for our own purposes:
 - [x] Trying to make an RPC without a server issued token, a previously useable token, or a valid token that is issued for a different user (invalid user/token combo)
 - [x] END successfully removes a client token so that a user must re-authenticate to use the formerly active token.
 - [x] When the server restarts, active tokens are flushed and a new session must be authenticated for each formerly connected client.
+
+## Known Issues
+
+Since we implemented token-based authentication for RPC's, when the client force-exits (^C), the server does not know that the client has closed the connection, and therefore leaves the username:token key pair in the database as an active session. Thus, on further login attempts, the user will be unable to authenticate until the server restarts and the username:token bucket is reset in the database. A simple way to avoid is this is to not force-quit (^C) the client, and instead use a safe exit command such as `END`. This sort of behavior was not specified in the project description, so we chose to work around this by NOT using ^C to exit the client.
+
+We are also aware of an issue that prevents users from logging in under a different username in the event that their password is incorrect, or the username is currently in a session. The secure password field will continue to ask for a password, thus a permanent loop will never be escaped. You will have to ^C out of the client program if this is the case, as there is no other option. Alternatively, you can simply kill the process and then open a new Terminal window and execute a fresh client login from there. 
+
+
+
+
+

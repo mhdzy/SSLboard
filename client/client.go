@@ -220,7 +220,7 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 			if c.Messages == nil {
 				fmt.Printf("This group does not exist.\n\n")
 			} else {
-				fmt.Printf("Current Messages: \n")
+				fmt.Printf("Messages in group '%s': \n", c.Group)
 				for i := 0; i < len(c.Messages); i++ {
 					fmt.Printf("%s\n", c.Messages[i])
 				}
