@@ -15,6 +15,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+/**
+ * func vaildateToken
+ * Authenticates a user for GET/POST/END given username/token
+ */
 func validateToken(token string, username string) error {
 
 	var bucket_tokens = []byte("Tokens")
@@ -42,40 +46,11 @@ func validateToken(token string, username string) error {
 	return err
 }
 
-func getGroupNames() ([][]byte, error) {
-
-	var bucket_groups = []byte("Groups")
-	var groups [][]byte
-	var noGroups = errors.New("No available groups.")
-
-	// open database
-	db, err := bolt.Open("./board.db", 0666, nil)
-	if err != nil {
-		return groups, err
-	}
-	defer db.Close()
-
-	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(bucket_groups)
-		if bucket == nil {
-			return noGroups
-		}
-		c := bucket.Cursor()
-		i := 0
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			groups[i%10] = v
-			i += 1
-		}
-		return nil
-	})
-	return groups, err
-}
-
 type SSLboardServer struct{}
 
 /**
  * func Authenticate
- * Authenticates a given username/passwords
+ * Authenticates a user given username/passwords
  */
 func (s *SSLboardServer) Authenticate(ctx context.Context, c *pb.Credentials) (*pb.Credentials, error) {
 
@@ -250,11 +225,11 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	var messages []string
 	var bucket_groups = []byte("Groups")
 	var noGroups = errors.New("No available groups.")
-	var noMessages = errors.New("No available messages.")
+	var groupNotExist = errors.New("Group does not exist.")
 
 	token := m.Token
 	username := m.Username
-	// group := []byte(strings.ToLower(m.Group))
+	group := []byte(strings.ToLower(m.Group))
 
 	// check that the token given is a valid token
 	err := validateToken(token, username)
@@ -273,43 +248,39 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 
 	// send back list of available groups
 	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(bucket_groups)
-		bucket2 := tx.Bucket([]byte(m.Group))
-
-		if bucket == nil {
+		bucket1 := tx.Bucket(bucket_groups)
+		if bucket1 == nil {
 			return noGroups
 		}
-		s := bucket.Stats()
-		groups = make([]string, s.KeyN)
+		s1 := bucket1.Stats()
+		groups = make([]string, s1.KeyN)
 
-		c := bucket.Cursor()
+		c1 := bucket1.Cursor()
 		i := 0
-		for k, v := c.First(); k != nil; k, v = c.Next() {
+		for k, v := c1.First(); k != nil; k, v = c1.Next() {
 			groups[i] = string(v)
 			i += 1
 		}
 
+		bucket2 := tx.Bucket(group)
 		if bucket2 == nil {
-			return noMessages
+			return groupNotExist
 		}
 		s2 := bucket2.Stats()
-		messages = make([]string, s2.KeyN+1)
+		messages = make([]string, s2.KeyN)
 
-		d := bucket.Cursor()
+		c2 := bucket2.Cursor()
 		j := 0
-		for k, v := d.First(); k != nil; k, v = d.Next() {
+		for k, v := c2.First(); k != nil; k, v = c2.Next() {
 			var buffer bytes.Buffer
 			buffer.WriteString(string(k))
 			buffer.WriteString("\t")
 			buffer.WriteString(string(v))
-			e := buffer.String()
-			messages[j] = e
+			messages[j] = buffer.String()
 			j += 1
 		}
-
 		return nil
 	})
-
 	if err != nil {
 		log.Println(err)
 	}
@@ -318,7 +289,6 @@ func (s *SSLboardServer) Get(_ context.Context, m *pb.Message) (*pb.Message, err
 	fmt.Println(messages)
 	m.Groups = groups
 	m.Messages = messages
-
 	return m, nil
 }
 

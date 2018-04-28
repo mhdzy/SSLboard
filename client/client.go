@@ -162,6 +162,10 @@ func parse(cmd string) (string, string, string, bool) {
 
 		// extract message from strings (cat the rest of the split result)
 		message := words[2:len(words)]
+		if string(strings.Join(message, " ")) == "" {
+			fmt.Printf("Please include a message when POSTing to the group.\n")
+			return "invalid", "", "", true
+		}
 		return command, group, strings.Join(message, " "), false
 	} else {
 		return "invalid", "", "", true
@@ -217,7 +221,7 @@ func interactWithBoard(username string, token string, sslClient pb.SSLboardClien
 
 			// print messages out to the client
 			if c.Messages == nil {
-				fmt.Printf("There are currently no messages in the group.\n\n")
+				fmt.Printf("This group does not exist.\n\n")
 			} else {
 				fmt.Printf("Current Messages: \n")
 				for i := 0; i < len(c.Messages); i++ {
