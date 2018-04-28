@@ -18,6 +18,8 @@ We had somewhat of a challenge figuring out boltDB, our database package. It was
 In order to install Go, you must install the appropriate package from the following link:
 
     https://golang.org/dl/
+    
+**dep** managed all dependencies and they are all bundled with this project in the `/SSLboard/vendor/` directory.
 
 Then, you need to place the source directory (.../SSLboard/) in $GOROOT/src/github.com/SleightOfHandzy/ ($GOROOT is typically $HOME/Go/) to end up with a relative pathname of: 
 
@@ -31,7 +33,7 @@ Now, you will need to generate a `.key` and `.crt` file using the following comm
     
 Next, you will need to place your `.key` and `.crt` files (openSSL generated key and certificate files) into the `/SSLboard/server/` directory. This is where our code assumes they will be, and it will compile but NOT work if they are not placed in this package. If you are using the compiled binaries in the `/bin/linux/` or `/bin/macOS/` folders (explained below), then please place your `.key` and `.crt` files directly into the respective folder.
     
-From this point forward, you will be able to cd into a directory, compile, and execute our project. If you have trouble compiling our project in Windows, we advise you switch to a Linux or macOS machine.
+From this point forward, you will be able to cd into a directory, compile, and execute our project. For simplicity's sake, we included our compiled binaries (macOS versions) in the `/SSLboard/client/` and `/SSLboard/server` directories, along with our own generated `.crt` and `.key` files. Feel free to use these, otherwise, you are welcome to generate your own. If you have trouble compiling our project in Windows, we advise you switch to a Linux or macOS machine.
 
 ## Execution
 
