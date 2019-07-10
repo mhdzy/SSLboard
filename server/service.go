@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SleightOfHandzy/SSLboard/pb"
+	"github.com/matthewhandzy/SSLboard/pb"
 	"github.com/boltdb/bolt"
 	"golang.org/x/crypto/bcrypt"
 )
